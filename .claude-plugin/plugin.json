@@ -1,0 +1,10 @@
+{
+  "name": "obsidian-memory",
+  "version": "0.1.0",
+  "description": "Local-first linked memory workspace backed by an Obsidian vault",
+  "commands": ["commands/memory.md"],
+  "hooks": {
+    "SessionStart": "hooks/session-start.sh",
+    "SessionEnd": "hooks/session-end.sh"
+  }
+}
