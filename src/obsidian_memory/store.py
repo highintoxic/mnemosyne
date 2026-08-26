@@ -11,6 +11,7 @@ from .privacy import is_ignored, redact_sensitive
 
 ENTITY_DIRS = {"user": "users", "person": "users", "project": "projects", "agent": "agents"}
 MEMORY_TYPES = {"semantic", "episodic", "procedural", "prospective", "parametric", "retrieval"}
+VALID_STATUSES = {"candidate", "active", "superseded", "archived", "rejected"}
 
 
 def slugify(title: str) -> str:
@@ -78,3 +79,26 @@ class MemoryStore:
             if metadata.get("id") == identifier or path.stem == identifier:
                 return path
         return None
+
+    def set_status(self, identifier: str, status: str) -> Path:
+        if status not in VALID_STATUSES:
+            raise ValueError(f"unsupported status: {status}")
+        path = self.get_by_id(identifier)
+        if not path:
+            raise FileNotFoundError(f"note not found: {identifier}")
+        metadata, body = read_note(path)
+        metadata["status"] = status
+        metadata["updated"] = _now()
+        write_note(path, metadata, body)
+        self.journal.append({"event": "status_changed", "id": str(metadata.get("id", path.stem)), "status": status})
+        return path
+
+    def supersede(self, identifier: str, kind: str, title: str, body: str, fields: dict[str, object] | None = None) -> Path:
+        old = self.get_by_id(identifier)
+        if not old:
+            raise FileNotFoundError(f"note not found: {identifier}")
+        self.set_status(str(read_note(old)[0].get("id", old.stem)), "superseded")
+        from .relations import RelationStore
+        new_path = self.create_memory(kind, title, body, dict(fields or {}))
+        RelationStore(self.vault).add(new_path.stem, "supersedes", str(read_note(old)[0].get("id", old.stem)))
+        return new_path

@@ -23,11 +23,12 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="obsidian-memory", description="Local-first Obsidian memory workspace")
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="initialize a vault"); _common(init); init.add_argument("--dry-run", action="store_true")
-    save = sub.add_parser("save", help="save a typed memory"); _common(save); save.add_argument("--type", required=True); save.add_argument("--title", required=True); save.add_argument("--body", required=True); save.add_argument("--status", default="candidate"); save.add_argument("--confidence", type=float, default=.5); save.add_argument("--importance", type=float, default=.5)
+    save = sub.add_parser("save", help="save a typed memory"); _common(save); save.add_argument("--type", required=True); save.add_argument("--title", required=True); save.add_argument("--body", required=True); save.add_argument("--status", default="candidate"); save.add_argument("--confidence", type=float, default=.5); save.add_argument("--importance", type=float, default=.5); save.add_argument("--supersede", metavar="OLD_ID", default=None, help="mark this note superseded and link the new one")
     recall = sub.add_parser("recall", help="retrieve linked context"); _common(recall); recall.add_argument("query"); recall.add_argument("--type"); recall.add_argument("--limit", type=int, default=10)
     entity = sub.add_parser("entity", help="create a user, project, or agent"); _common(entity); entity.add_argument("kind", choices=("user", "person", "project", "agent")); entity.add_argument("--title", required=True); entity.add_argument("--description", default="")
     session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}")
-    for name, help_text in (("review", "review candidates and conflicts"), ("index", "rebuild the disposable index"), ("doctor", "diagnose vault consistency")):
+    review = sub.add_parser("review", help="review candidates and conflicts"); _common(review); review.add_argument("--promote", metavar="ID"); review.add_argument("--reject", metavar="ID")
+    for name, help_text in (("index", "rebuild the disposable index"), ("doctor", "diagnose vault consistency")):
         child = sub.add_parser(name, help=help_text); _common(child)
     return parser
 
@@ -57,7 +58,12 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 config = VaultConfig.initialize(vault); _emit({"vault": str(config.vault), "schema_version": config.schema_version}, args.as_json)
         elif args.command == "save":
-            path = MemoryStore(vault).create_memory(args.type, args.title, args.body, {"status": args.status, "confidence": args.confidence, "importance": args.importance}); _emit(str(path), args.as_json)
+            store = MemoryStore(vault)
+            if args.supersede:
+                path = store.supersede(args.supersede, args.type, args.title, args.body, {"status": args.status, "confidence": args.confidence, "importance": args.importance})
+            else:
+                path = store.create_memory(args.type, args.title, args.body, {"status": args.status, "confidence": args.confidence, "importance": args.importance})
+            _emit(str(path), args.as_json)
         elif args.command == "recall":
             filters = {"type": args.type} if args.type else None; _emit(Retriever(vault).search(args.query, filters, args.limit), args.as_json)
         elif args.command == "entity":
@@ -70,7 +76,13 @@ def main(argv: list[str] | None = None) -> int:
                 result = store.finalize(args.id, json.loads(args.overview))
             else: result = store.load_context(args.project, args.limit)
             _emit(result, args.as_json)
-        elif args.command == "review": _emit(review(vault), args.as_json)
+        elif args.command == "review":
+            if args.promote:
+                _emit(str(MemoryStore(vault).set_status(args.promote, "active")), args.as_json)
+            elif args.reject:
+                _emit(str(MemoryStore(vault).set_status(args.reject, "rejected")), args.as_json)
+            else:
+                _emit(review(vault), args.as_json)
         elif args.command == "index": _emit(str(rebuild_index(vault)), args.as_json)
         elif args.command == "doctor": _emit(doctor(vault), args.as_json)
         return 0
