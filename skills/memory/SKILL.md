@@ -42,7 +42,9 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
    - `parametric` — user preferences, project conventions, agent capabilities
    - `retrieval` — saved queries and context-assembly hints
    Link it: pass `entities`, `source_sessions`, `related` IDs so the Obsidian graph connects.
-3. **Session end** — call `session_finalize` with `auto=true` (builds the overview from the journal) plus explicit `decisions`; or pass a full JSON `overview`. This writes the complete session note (goals, work, discoveries, unresolved, follow-ups, extracted memories).
+   Saves auto-link to the active session (the UserPromptSubmit hook also logs each prompt to the session's Activity Log).
+   When a memory changes, call `update` with `id` + the fields to amend (`body`, `title`, `confidence`) instead of creating a duplicate.
+3. **Session end** — call `session_finalize` with `auto=true` (builds the overview from the journal) plus explicit `decisions`; or pass a full JSON `overview`. This writes the complete session note (goals, work, discoveries, unresolved, follow-ups, extracted memories, activity log).
 4. **Lifecycle** — `promote`/`reject` reviewed candidates; `supersede` outdated notes (marks old superseded + links `supersedes` relation).
 5. **Maintenance** — `review` for promotion decisions, `doctor` for structural issues, `index` to rebuild the disposable search index.
 
