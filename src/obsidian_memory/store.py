@@ -107,6 +107,30 @@ class MemoryStore:
         self.journal.append({"event": "status_changed", "id": str(metadata.get("id", path.stem)), "status": status})
         return path
 
+    def update_memory(self, identifier: str, body: str | None = None, title: str | None = None,
+                      confidence: float | None = None, importance: float | None = None) -> Path:
+        """Amend a memory in place (no new note), updating the timestamp."""
+        path = self.get_by_id(identifier)
+        if not path:
+            raise FileNotFoundError(f"note not found: {identifier}")
+        metadata, current_body = read_note(path)
+        if body is not None:
+            clean, findings = redact_sensitive(body, self.config.sensitive_patterns)
+            if is_ignored(clean, tuple(self.config.ignore_markers)):
+                raise ValueError("memory update is excluded")
+            current_body = clean
+            metadata["redactions"] = findings
+        if title is not None:
+            metadata["title"] = title
+        if confidence is not None:
+            metadata["confidence"] = confidence
+        if importance is not None:
+            metadata["importance"] = importance
+        metadata["updated"] = _now()
+        write_note(path, metadata, current_body)
+        self.journal.append({"event": "memory_updated", "id": str(metadata.get("id", path.stem))})
+        return path
+
     def supersede(self, identifier: str, kind: str, title: str, body: str, fields: dict[str, object] | None = None) -> Path:
         old = self.get_by_id(identifier)
         if not old:

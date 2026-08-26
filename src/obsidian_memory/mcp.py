@@ -114,6 +114,18 @@ class MCPMemoryServer:
                    {"type": "object", "properties": {"vault": vault_param, "project": str_param("project ID"), "limit": {"type": "integer", "default": 10}}},
                    lambda a: _sessions(a).load_context(a.get("project"), a.get("limit", 10)))
 
+        self._tool("session_update", "Append a timestamped activity entry to the active session",
+                   {"type": "object", "required": ["session_id", "text"],
+                    "properties": {"vault": vault_param, "session_id": str_param("session note ID"), "text": str_param("activity entry")}},
+                   lambda a: str(_sessions(a).update_activity(a["session_id"], a["text"])))
+
+        self._tool("update", "Amend an existing memory in place (body/title/confidence)",
+                   {"type": "object", "required": ["id"],
+                    "properties": {"vault": vault_param, "id": str_param("note ID"),
+                                   "body": str_param("new body"), "title": str_param("new title"),
+                                   "confidence": {"type": "number"}, "importance": {"type": "number"}}},
+                   lambda a: str(_update_impl(_store(a), a)))
+
         self._tool("promote", "Promote a candidate memory to active",
                    {"type": "object", "required": ["id"], "properties": {"vault": vault_param, "id": str_param("note ID")}},
                    lambda a: str(_store(a).set_status(a["id"], "active")))
@@ -169,6 +181,14 @@ def _fields_with_session(args: dict[str, Any], vault: Path) -> dict[str, Any]:
         if active:
             fields["source_sessions"] = [active]
     return fields
+
+
+def _update_impl(store: MemoryStore, args: dict[str, Any]) -> Any:
+    kwargs: dict[str, Any] = {}
+    for key in ("body", "title", "confidence", "importance"):
+        if key in args and args[key] is not None:
+            kwargs[key] = args[key]
+    return store.update_memory(args["id"], **kwargs)
 
 
 def _finalize_impl(sessions: SessionStore, session_id: str, overview: str | None,

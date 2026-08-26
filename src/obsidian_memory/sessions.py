@@ -7,7 +7,7 @@ from .config import VaultConfig
 from .ids import new_id
 from .journal import Journal
 from .notes import read_note, write_note
-from .privacy import redact_sensitive
+from .privacy import is_ignored, redact_sensitive
 from .store import MemoryStore
 
 
@@ -45,7 +45,8 @@ class SessionStore:
         path = self._find(session)
         if not path:
             raise FileNotFoundError(f"session not found: {session}")
-        metadata, _ = read_note(path)
+        metadata, current_body = read_note(path)
+        activity = self._activity_lines(current_body)
         metadata.update({"status": "complete", "updated": _now()})
         sections = [("Goals", overview.get("goals", [])), ("Decisions", overview.get("decisions", [])),
                     ("Work", overview.get("work", [])), ("Discoveries", overview.get("discoveries", [])),
@@ -68,6 +69,8 @@ class SessionStore:
                 clean.append(text)
             body += f"## {heading}\n\n{_items(clean)}\n\n"
         body += "## Related Sessions\n\n" + _items(clean_values(overview.get("related_sessions")))
+        if activity:
+            body += f"\n\n## Activity Log\n\n" + "\n".join(f"- {line}" for line in activity)
         write_note(path, metadata, body)
         for memory in overview.get("memories", []) if isinstance(overview.get("memories", []), list) else []:
             if not isinstance(memory, dict) or not memory.get("type") or not memory.get("title"):
@@ -121,6 +124,33 @@ class SessionStore:
         if follow_ups:
             overview["follow_ups"] = follow_ups
         return self.finalize(session, overview)
+
+    def update_activity(self, session: str, text: str) -> Path:
+        """Append a timestamped, redacted activity entry to the session note."""
+        path = self._find(session)
+        if not path:
+            raise FileNotFoundError(f"session not found: {session}")
+        metadata, body = read_note(path)
+        clean, _ = redact_sensitive(str(text), self.config.sensitive_patterns)
+        if is_ignored(clean, tuple(self.config.ignore_markers)):
+            return path
+        entry = f"- {_now()} {clean}"
+        marker = "## Activity Log"
+        if marker in body:
+            body = body.rstrip() + "\n" + entry + "\n"
+        else:
+            body = body.rstrip() + f"\n\n{marker}\n\n{entry}\n"
+        write_note(path, metadata, body)
+        self.journal.append({"event": "session_activity", "id": str(metadata.get("id", path.stem))})
+        return path
+
+    def _activity_lines(self, body: str) -> list[str]:
+        """Extract existing Activity Log entries so finalize preserves them."""
+        if "## Activity Log" not in body:
+            return []
+        section = body.split("## Activity Log", 1)[1]
+        section = section.split("##", 1)[0]
+        return [line.strip().lstrip("-").strip() for line in section.splitlines() if line.strip().startswith("-")]
 
     def load_context(self, project: str | None, limit: int = 10) -> list[dict[str, object]]:
         found = []

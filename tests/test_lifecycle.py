@@ -69,3 +69,21 @@ def test_self_relation_rejected(vault: Path):
     identifier = read_note(memory)[0]["id"]
     with pytest.raises(ValueError, match="self-relation"):
         RelationStore(vault).add(identifier, "related-to", identifier)
+
+
+def test_update_memory_amends_in_place(vault: Path):
+    store = MemoryStore(vault)
+    memory = store.create_memory("semantic", "Claim", "Old body.", {"confidence": 0.5})
+    identifier = read_note(memory)[0]["id"]
+    store.update_memory(identifier, body="New body.", confidence=0.9)
+    meta, body = read_note(memory)
+    assert body == "New body."
+    assert meta["confidence"] == 0.9
+    assert meta["status"] == "candidate"  # status preserved
+    assert meta["updated"] != meta["created"]
+
+
+def test_update_memory_missing_note_fails(vault: Path):
+    store = MemoryStore(vault)
+    with pytest.raises(FileNotFoundError):
+        store.update_memory("missing_id", body="X")
