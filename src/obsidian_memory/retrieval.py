@@ -50,6 +50,8 @@ class Retriever:
                                    "confidence": confidence, "score": score,
                                    "source_path": str(path.relative_to(self.vault))})
         candidates.sort(key=lambda item: float(item["score"]), reverse=True)
+        if self.provider is not None:
+            candidates = self._blend_provider_scores(query, candidates)
         selected = candidates[:limit]
         if selected:
             known = {item["id"] for item in selected}
@@ -70,6 +72,17 @@ class Retriever:
                         selected.append(related)
                         known.add(related_id)
         return selected[:limit]
+
+    def _blend_provider_scores(self, query: str, candidates: list[dict[str, object]]) -> list[dict[str, object]]:
+        try:
+            documents = [{"id": str(item["id"]), "text": f"{item.get('title', '')} {item.get('excerpt', '')}"} for item in candidates]
+            scores = {str(result["id"]): float(result["score"]) for result in self.provider.search(query, documents, limit=len(documents))}
+        except Exception:
+            return candidates
+        for item in candidates:
+            item["score"] = float(item["score"]) + 5.0 * scores.get(str(item["id"]), 0.0)
+        candidates.sort(key=lambda item: float(item["score"]), reverse=True)
+        return candidates
 
     def _result_for_id(self, identifier: str) -> dict[str, object] | None:
         for root in (self.vault / "memories", self.vault / "entities", self.vault / "sessions"):

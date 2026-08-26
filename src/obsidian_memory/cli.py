@@ -7,6 +7,7 @@ import sys
 
 from .config import VaultConfig
 from .maintenance import doctor, rebuild_index, review
+from .providers import TfidfProvider
 from .retrieval import Retriever
 from .sessions import SessionStore
 from .store import MemoryStore
@@ -24,7 +25,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="initialize a vault"); _common(init); init.add_argument("--dry-run", action="store_true")
     save = sub.add_parser("save", help="save a typed memory"); _common(save); save.add_argument("--type", required=True); save.add_argument("--title", required=True); save.add_argument("--body", required=True); save.add_argument("--status", default="candidate"); save.add_argument("--confidence", type=float, default=.5); save.add_argument("--importance", type=float, default=.5); save.add_argument("--supersede", metavar="OLD_ID", default=None, help="mark this note superseded and link the new one")
-    recall = sub.add_parser("recall", help="retrieve linked context"); _common(recall); recall.add_argument("query"); recall.add_argument("--type"); recall.add_argument("--limit", type=int, default=10)
+    recall = sub.add_parser("recall", help="retrieve linked context"); _common(recall); recall.add_argument("query"); recall.add_argument("--type"); recall.add_argument("--limit", type=int, default=10); recall.add_argument("--semantic", action="store_true", help="blend TF-IDF semantic ranking")
     entity = sub.add_parser("entity", help="create a user, project, or agent"); _common(entity); entity.add_argument("kind", choices=("user", "person", "project", "agent")); entity.add_argument("--title", required=True); entity.add_argument("--description", default="")
     session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}")
     review = sub.add_parser("review", help="review candidates and conflicts"); _common(review); review.add_argument("--promote", metavar="ID"); review.add_argument("--reject", metavar="ID")
@@ -65,7 +66,9 @@ def main(argv: list[str] | None = None) -> int:
                 path = store.create_memory(args.type, args.title, args.body, {"status": args.status, "confidence": args.confidence, "importance": args.importance})
             _emit(str(path), args.as_json)
         elif args.command == "recall":
-            filters = {"type": args.type} if args.type else None; _emit(Retriever(vault).search(args.query, filters, args.limit), args.as_json)
+            filters = {"type": args.type} if args.type else None
+            provider = TfidfProvider() if args.semantic else None
+            _emit(Retriever(vault, provider=provider).search(args.query, filters, args.limit), args.as_json)
         elif args.command == "entity":
             path = MemoryStore(vault).create_entity(args.kind, args.title, {"description": args.description}); _emit(str(path), args.as_json)
         elif args.command == "session":
