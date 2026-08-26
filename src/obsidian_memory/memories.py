@@ -7,6 +7,8 @@ MEMORY_TYPES = {
     "prospective": "future actions, reminders, and triggers",
     "parametric": "declared preferences, capabilities, and constraints",
     "retrieval": "saved queries, aliases, and context assembly hints",
+    "question": "asked questions with answers and correctness (quizzes, probes, learning)",
+    "decision": "decisions with context, options, choice, and rationale",
 }
 
 

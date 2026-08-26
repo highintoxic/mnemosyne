@@ -29,6 +29,8 @@ def _parser() -> argparse.ArgumentParser:
     entity = sub.add_parser("entity", help="create a user, project, or agent"); _common(entity); entity.add_argument("kind", choices=("user", "person", "project", "agent")); entity.add_argument("--title", required=True); entity.add_argument("--description", default="")
     session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context", "update")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}"); session.add_argument("--auto", action="store_true", help="build the overview from journal events"); session.add_argument("--decisions", nargs="*", default=None); session.add_argument("--goals", nargs="*", default=None); session.add_argument("--text", default=None, help="activity entry to append (session update)")
     review = sub.add_parser("review", help="review candidates and conflicts"); _common(review); review.add_argument("--promote", metavar="ID"); review.add_argument("--reject", metavar="ID")
+    question = sub.add_parser("question", help="record a quiz/learning question"); _common(question); question.add_argument("--question", required=True); question.add_argument("--answer", required=True); question.add_argument("--correct", type=lambda v: v.lower() in ("true", "1", "yes"), default=True); question.add_argument("--topic"); question.add_argument("--difficulty")
+    decision = sub.add_parser("decision", help="record a decision with rationale"); _common(decision); decision.add_argument("--decision", required=True); decision.add_argument("--context", default=""); decision.add_argument("--options", nargs="*", default=None); decision.add_argument("--chosen"); decision.add_argument("--rationale", required=True)
     for name, help_text in (("index", "rebuild the disposable index"), ("doctor", "diagnose vault consistency")):
         child = sub.add_parser(name, help=help_text); _common(child)
     return parser
@@ -85,6 +87,10 @@ def main(argv: list[str] | None = None) -> int:
                 result = store.update_activity(args.id, args.text)
             else: result = store.load_context(args.project, args.limit)
             _emit(result, args.as_json)
+        elif args.command == "question":
+            _emit(str(MemoryStore(vault).create_question(args.question, args.answer, args.correct, args.topic, args.difficulty)), args.as_json)
+        elif args.command == "decision":
+            _emit(str(MemoryStore(vault).create_decision(args.decision, args.context, args.options, args.chosen, args.rationale)), args.as_json)
         elif args.command == "update":
             kwargs = {}
             if args.body is not None: kwargs["body"] = args.body

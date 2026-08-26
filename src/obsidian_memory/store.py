@@ -131,6 +131,48 @@ class MemoryStore:
         self.journal.append({"event": "memory_updated", "id": str(metadata.get("id", path.stem))})
         return path
 
+    def create_question(self, question: str, answer: str, correct: bool,
+                        topic: str | None = None, difficulty: str | None = None,
+                        fields: dict[str, object] | None = None) -> Path:
+        """Record a question (quiz/probe/learning) with its answer and correctness."""
+        if not question.strip() or not answer.strip():
+            raise ValueError("question and answer are required")
+        clean_q, _ = redact_sensitive(question, self.config.sensitive_patterns)
+        clean_a, _ = redact_sensitive(answer, self.config.sensitive_patterns)
+        if is_ignored(clean_q + clean_a, tuple(self.config.ignore_markers)):
+            raise ValueError("question capture is excluded")
+        identifier = new_id("question")
+        path = self.vault / "memories" / "questions" / f"{slugify(clean_q[:60])}-{identifier}.md"
+        metadata = {"memory_schema": 1, "id": identifier, "type": "question", "title": clean_q[:80],
+                    "status": "active", "created": _now(), "updated": _now(),
+                    "question": clean_q, "answer": clean_a, "correct": bool(correct),
+                    "topic": topic, "difficulty": difficulty, **self._normalize_links(dict(fields or {}))}
+        write_note(path, metadata, f"**Q:** {clean_q}\n\n**A:** {clean_a}\n\n*Correct: {bool(correct)}*")
+        self.journal.append({"event": "question_recorded", "id": identifier, "correct": bool(correct)})
+        return path
+
+    def create_decision(self, decision: str, context: str = "", options: list[str] | None = None,
+                        chosen: str | None = None, rationale: str = "",
+                        fields: dict[str, object] | None = None) -> Path:
+        """Record a decision with its context, options, choice, and rationale."""
+        if not decision.strip() or not rationale.strip():
+            raise ValueError("decision and rationale are required")
+        clean_d, _ = redact_sensitive(decision, self.config.sensitive_patterns)
+        clean_c, _ = redact_sensitive(context, self.config.sensitive_patterns)
+        clean_r, _ = redact_sensitive(rationale, self.config.sensitive_patterns)
+        if is_ignored(clean_d + clean_c + clean_r, tuple(self.config.ignore_markers)):
+            raise ValueError("decision capture is excluded")
+        identifier = new_id("decision")
+        path = self.vault / "memories" / "decisions" / f"{slugify(clean_d[:60])}-{identifier}.md"
+        metadata = {"memory_schema": 1, "id": identifier, "type": "decision", "title": clean_d[:80],
+                    "status": "active", "created": _now(), "updated": _now(),
+                    "decision": clean_d, "context": clean_c, "options": list(options or []),
+                    "chosen": chosen, "rationale": clean_r, **self._normalize_links(dict(fields or {}))}
+        body = f"# {clean_d}\n\n**Context:** {clean_c}\n\n**Options:** {', '.join(str(o) for o in (options or [])) or 'n/a'}\n\n**Chosen:** {chosen or 'n/a'}\n\n**Rationale:** {clean_r}"
+        write_note(path, metadata, body)
+        self.journal.append({"event": "decision_recorded", "id": identifier, "chosen": chosen})
+        return path
+
     def supersede(self, identifier: str, kind: str, title: str, body: str, fields: dict[str, object] | None = None) -> Path:
         old = self.get_by_id(identifier)
         if not old:

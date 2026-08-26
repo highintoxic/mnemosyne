@@ -17,7 +17,8 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
 ## Subskills
 
 1. **Capture:** classify one concise claim as semantic, episodic, procedural, prospective, parametric, or retrieval memory. Keep source-session links and confidence.
-2. **Retrieval:** query exact text and metadata first; use graph neighbors next. Return bounded context with type, confidence, reason, and source path.
+2. **Records (questions & decisions):** when a quiz/probe/learning question is asked, record it with `log_question` (question, answer, correct, topic, difficulty). When a decision is made, record it with `log_decision` (decision, context, options, chosen, rationale). See [references/skill-integration.md](references/skill-integration.md) — this is how learning/quiz/teach/probe skills cooperate with memory.
+3. **Retrieval:** query exact text and metadata first; use graph neighbors next. Return bounded context with type, confidence, reason, and source path.
 3. **Session overview:** preserve request, loaded context, goals, decisions, work, discoveries, unresolved questions, follow-ups, extracted memories, and related sessions.
 4. **Entities:** maintain explicit user, project, and agent profiles. Confirm uncertain personal/high-impact claims.
 5. **Relations:** use only `supports`, `contradicts`, `derived-from`, `implements`, `blocked-by`, `supersedes`, `part-of`, `applies-to`, and `related-to`. Never create self-relations.
@@ -41,6 +42,8 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
    - `prospective` — future actions/reminders/deadlines
    - `parametric` — user preferences, project conventions, agent capabilities
    - `retrieval` — saved queries and context-assembly hints
+   - `question` — quiz/probe questions with answer + correctness (`log_question`)
+   - `decision` — decisions with context, options, choice, rationale (`log_decision`)
    Link it: pass `entities`, `source_sessions`, `related` IDs so the Obsidian graph connects.
    Saves auto-link to the active session (the UserPromptSubmit hook also logs each prompt to the session's Activity Log).
    When a memory changes, call `update` with `id` + the fields to amend (`body`, `title`, `confidence`) instead of creating a duplicate.

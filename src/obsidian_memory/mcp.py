@@ -126,6 +126,22 @@ class MCPMemoryServer:
                                    "confidence": {"type": "number"}, "importance": {"type": "number"}}},
                    lambda a: str(_update_impl(_store(a), a)))
 
+        self._tool("log_question", "Record a quiz/learning question with answer and correctness",
+                   {"type": "object", "required": ["question", "answer"],
+                    "properties": {"vault": vault_param, "question": str_param("the question asked"),
+                                   "answer": str_param("the answer"), "correct": {"type": "boolean", "default": True},
+                                   "topic": str_param("subject area"), "difficulty": str_param("easy/medium/hard")}},
+                   lambda a: str(_store(a).create_question(a["question"], a["answer"], bool(a.get("correct", True)),
+                                                          a.get("topic"), a.get("difficulty"))))
+
+        self._tool("log_decision", "Record a decision with context, options, choice, and rationale",
+                   {"type": "object", "required": ["decision", "rationale"],
+                    "properties": {"vault": vault_param, "decision": str_param("the decision made"),
+                                   "context": str_param("situation"), "options": {"type": "array", "items": {"type": "string"}},
+                                   "chosen": str_param("what was chosen"), "rationale": str_param("why")}},
+                   lambda a: str(_store(a).create_decision(a["decision"], a.get("context", ""), a.get("options"),
+                                                          a.get("chosen"), a["rationale"])))
+
         self._tool("promote", "Promote a candidate memory to active",
                    {"type": "object", "required": ["id"], "properties": {"vault": vault_param, "id": str_param("note ID")}},
                    lambda a: str(_store(a).set_status(a["id"], "active")))
