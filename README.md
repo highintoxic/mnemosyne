@@ -25,12 +25,19 @@ obsidian-memory entity --vault C:/Memory project --title "Research"
 obsidian-memory entity --vault C:/Memory agent --title "Claude"
 obsidian-memory save --vault C:/Memory --type semantic --title "Canonical store" --body "Markdown is authoritative."
 obsidian-memory recall --vault C:/Memory "canonical store"
+obsidian-memory recall --vault C:/Memory "atomic operations" --semantic   # TF-IDF ranking blend
 obsidian-memory session --vault C:/Memory start --project research
 obsidian-memory session --vault C:/Memory finalize --id SESSION_ID --overview '{"goals":["ship"],"decisions":["stay local"],"work":["implemented"],"discoveries":[],"unresolved":[],"follow_ups":[]}'
+obsidian-memory session --vault C:/Memory finalize --id SESSION_ID --auto --decisions "stay local"  # build overview from the journal
 obsidian-memory review --vault C:/Memory
+obsidian-memory review --vault C:/Memory --promote NOTE_ID      # candidate -> active
+obsidian-memory review --vault C:/Memory --reject NOTE_ID       # candidate -> rejected
+obsidian-memory save --vault C:/Memory --type semantic --title "Updated fact" --body "..." --supersede OLD_NOTE_ID
 obsidian-memory index --vault C:/Memory
 obsidian-memory doctor --vault C:/Memory
 ```
+
+Set `OBSIDIAN_MEMORY_SESSION_ID` for Claude Code lifecycle hooks; the session-end hook then auto-finalizes that session from the journal (fail-open).
 
 The Claude Code integration is in `.claude-plugin/`; the portable entry skill is `skills/memory/SKILL.md`. Set `OBSIDIAN_MEMORY_VAULT=C:/Memory` and optionally `OBSIDIAN_MEMORY_PROJECT` before enabling lifecycle hooks. Hooks are defensive and fail open.
 
@@ -39,5 +46,7 @@ The Claude Code integration is in `.claude-plugin/`; the portable entry skill is
 - Offline operation works without provider credentials.
 - Typed semantic, episodic, procedural, prospective, parametric, and retrieval memory is supported.
 - Projects, users, agents, sessions, relations, confidence, and source links are represented in the vault.
+- Lifecycle: candidates can be promoted/rejected via `review`; `--supersede` marks old notes superseded and links them with a `supersedes` relation.
+- `recall --semantic` blends a stdlib TF-IDF provider into ranking; custom providers implement `SemanticProvider.search`.
 - `.memory/index` is disposable; Markdown notes remain authoritative.
 - `doctor` reports malformed notes, broken links, orphans, invalid statuses, duplicates, stale notes, and contradiction markers.

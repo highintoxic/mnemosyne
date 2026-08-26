@@ -27,7 +27,7 @@ def _parser() -> argparse.ArgumentParser:
     save = sub.add_parser("save", help="save a typed memory"); _common(save); save.add_argument("--type", required=True); save.add_argument("--title", required=True); save.add_argument("--body", required=True); save.add_argument("--status", default="candidate"); save.add_argument("--confidence", type=float, default=.5); save.add_argument("--importance", type=float, default=.5); save.add_argument("--supersede", metavar="OLD_ID", default=None, help="mark this note superseded and link the new one")
     recall = sub.add_parser("recall", help="retrieve linked context"); _common(recall); recall.add_argument("query"); recall.add_argument("--type"); recall.add_argument("--limit", type=int, default=10); recall.add_argument("--semantic", action="store_true", help="blend TF-IDF semantic ranking")
     entity = sub.add_parser("entity", help="create a user, project, or agent"); _common(entity); entity.add_argument("kind", choices=("user", "person", "project", "agent")); entity.add_argument("--title", required=True); entity.add_argument("--description", default="")
-    session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}")
+    session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}"); session.add_argument("--auto", action="store_true", help="build the overview from journal events"); session.add_argument("--decisions", nargs="*", default=None); session.add_argument("--goals", nargs="*", default=None)
     review = sub.add_parser("review", help="review candidates and conflicts"); _common(review); review.add_argument("--promote", metavar="ID"); review.add_argument("--reject", metavar="ID")
     for name, help_text in (("index", "rebuild the disposable index"), ("doctor", "diagnose vault consistency")):
         child = sub.add_parser(name, help=help_text); _common(child)
@@ -76,7 +76,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.action == "start": result = store.start(args.project, args.user, args.agent)
             elif args.action == "finalize":
                 if not args.id: raise ValueError("--id is required for session finalize")
-                result = store.finalize(args.id, json.loads(args.overview))
+                if args.auto:
+                    result = store.finalize_auto(args.id, decisions=args.decisions, goals=args.goals)
+                else:
+                    result = store.finalize(args.id, json.loads(args.overview))
             else: result = store.load_context(args.project, args.limit)
             _emit(result, args.as_json)
         elif args.command == "review":

@@ -23,7 +23,8 @@ Use this skill whenever durable user, project, agent, session, or workflow conte
 1. Resolve vault from `--vault`, then `OBSIDIAN_MEMORY_VAULT`; the documented local example is `C:/Memory`.
 2. At session start run `obsidian-memory session --vault <vault> context` and retrieve relevant open prospective items and recent sessions.
 3. During work use `save`, `entity`, and `recall` explicitly.
-4. At session end start or finalize a session using a complete JSON overview.
-5. Run `review` for promotion decisions and `doctor` for structural issues.
+4. At session end start or finalize a session using a complete JSON overview, or use `--auto` to build the overview from journal events.
+5. Promote reviewed candidates with `review --promote`; supersede outdated notes with `save --supersede OLD_ID`.
+6. Run `review` for promotion decisions and `doctor` for structural issues.
 
 Read [references/schemas.md](references/schemas.md) for the canonical contract. Markdown/YAML notes are authoritative. JSON configuration, journals, and indexes are operational or derived artifacts only.

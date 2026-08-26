@@ -1,6 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
+import json
 
 from .config import VaultConfig
 from .ids import new_id
@@ -76,6 +77,50 @@ class SessionStore:
             MemoryStore(self.vault).create_memory(str(memory["type"]), str(memory["title"]), str(memory.get("body", "")), fields)
         self.journal.append({"event": "session_finalized", "id": metadata["id"]})
         return path
+
+    def finalize_auto(self, session: str, decisions: list[str] | None = None,
+                      goals: list[str] | None = None, unresolved: list[str] | None = None,
+                      follow_ups: list[str] | None = None) -> Path:
+        """Build the overview from journal events recorded after session start."""
+        path = self._find(session)
+        if not path:
+            raise FileNotFoundError(f"session not found: {session}")
+        metadata, _ = read_note(path)
+        started_at = str(metadata.get("created", ""))
+        work: list[str] = []
+        discoveries: list[str] = []
+        journal_path = self.vault / ".memory/journal/events.jsonl"
+        if journal_path.is_file():
+            for line in journal_path.read_text(encoding="utf-8").splitlines():
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(event, dict) or str(event.get("timestamp", "")) < started_at:
+                    continue
+                if event.get("event") == "memory_created":
+                    note = self.vault / str(event.get("path", ""))
+                    if note.suffix == ".md" and note.is_file():
+                        try:
+                            title = str(read_note(note)[0].get("title", note.stem))
+                        except (OSError, ValueError):
+                            title = note.stem
+                        work.append(title)
+                elif event.get("event") == "relation_created":
+                    discoveries.append(f"{event.get('source')} {event.get('relation')} {event.get('target')}")
+        overview: dict[str, object] = {
+            "work": work or ["No memory writes recorded"],
+            "discoveries": discoveries or [],
+        }
+        if goals:
+            overview["goals"] = goals
+        if decisions:
+            overview["decisions"] = decisions
+        if unresolved:
+            overview["unresolved"] = unresolved
+        if follow_ups:
+            overview["follow_ups"] = follow_ups
+        return self.finalize(session, overview)
 
     def load_context(self, project: str | None, limit: int = 10) -> list[dict[str, object]]:
         found = []
