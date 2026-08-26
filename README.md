@@ -41,6 +41,15 @@ Set `OBSIDIAN_MEMORY_SESSION_ID` for Claude Code lifecycle hooks; the session-en
 
 The Claude Code integration is in `.claude-plugin/`; the portable entry skill is `skills/memory/SKILL.md`. Set `OBSIDIAN_MEMORY_VAULT=C:/Memory` and optionally `OBSIDIAN_MEMORY_PROJECT` before enabling lifecycle hooks. Hooks are defensive and fail open.
 
+## Any agent / harness (MCP + universal hooks)
+
+The system is not limited to Claude Code. It exposes:
+
+- **MCP server** (`obsidian-memory-mcp`) — 13 memory tools over the Model Context Protocol; register it with Claude Code, Codex, Cursor, Gemini CLI, or any MCP client and the agent can save/recall/relate memory on demand.
+- **Universal hooks** (`hooks/session-start.sh`, `hooks/session-end.sh`) — run at session start/end in any harness; they auto-start a session, inject relevant context, and auto-finalize the overview from the journal.
+
+See [docs/integrations.md](docs/integrations.md) for per-harness setup (JSON/Toml snippets for Claude Code, Codex, Cursor, Gemini CLI, shell wrappers) and the environment-variable reference.
+
 ## Design guarantees
 
 - Offline operation works without provider credentials.
