@@ -1,5 +1,5 @@
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.notes import read_note, write_note
+from mnemosyne.config import VaultConfig
+from mnemosyne.notes import read_note, write_note
 
 
 def test_initialize_creates_default_layout(tmp_path):

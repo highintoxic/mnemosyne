@@ -21,7 +21,7 @@ from .retrieval import Retriever
 from .sessions import SessionStore
 from .store import MemoryStore
 
-DEFAULT_VAULT = Path(os.environ.get("OBSIDIAN_MEMORY_VAULT", "C:/Memory"))
+DEFAULT_VAULT = Path(os.environ.get("MNEMOSYNE_VAULT", "C:/Memory"))
 
 
 class Tool:
@@ -259,7 +259,7 @@ def run_stdio_server(vault: Path) -> int:
             sys.stdout.write(json.dumps(_jsonrpc_result(request_id, {
                 "protocolVersion": message.get("params", {}).get("protocolVersion", "2024-11-05"),
                 "capabilities": {"tools": {"listChanged": False}},
-                "serverInfo": {"name": "obsidian-memory", "version": "0.1.0"},
+                "serverInfo": {"name": "mnemosyne", "version": "0.1.0"},
             })) + "\n")
             sys.stdout.flush()
         elif method == "notifications/initialized" or method == "notifications/initialized/notifications":

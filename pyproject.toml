@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "obsidian-memory"
+name = "mnemosyne"
 version = "0.1.0"
 description = "Local-first linked memory workspace for Obsidian and Claude Code"
 requires-python = ">=3.11"
 
 [project.scripts]
-obsidian-memory = "obsidian_memory.cli:main"
-obsidian-memory-mcp = "obsidian_memory.mcp:main"
+mnemosyne = "mnemosyne.cli:main"
+mnemosyne-mcp = "mnemosyne.mcp:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

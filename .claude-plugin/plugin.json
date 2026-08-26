@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-memory",
+  "name": "mnemosyne",
   "version": "0.1.0",
   "description": "Local-first linked memory workspace backed by an Obsidian vault",
   "commands": ["commands/memory.md"],

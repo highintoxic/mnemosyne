@@ -1,3 +1,3 @@
 def test_package_exposes_version():
-    import obsidian_memory
-    assert obsidian_memory.__version__
+    import mnemosyne
+    assert mnemosyne.__version__

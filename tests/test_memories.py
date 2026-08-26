@@ -1,6 +1,6 @@
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.notes import read_note
-from obsidian_memory.store import MemoryStore
+from mnemosyne.config import VaultConfig
+from mnemosyne.notes import read_note
+from mnemosyne.store import MemoryStore
 
 
 def test_create_project_and_semantic_memory_links_entity(tmp_path):

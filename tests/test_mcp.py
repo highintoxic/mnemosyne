@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.mcp import create_mcp_server
+from mnemosyne.config import VaultConfig
+from mnemosyne.mcp import create_mcp_server
 
 
 @pytest.fixture()
@@ -36,8 +36,8 @@ def test_mcp_tool_schema_has_required_params(vault: Path):
 
 def test_mcp_recall_returns_structured_results(vault: Path):
     """recall tool should return structured results an agent can use."""
-    from obsidian_memory.store import MemoryStore
-    from obsidian_memory.mcp import _recall_impl
+    from mnemosyne.store import MemoryStore
+    from mnemosyne.mcp import _recall_impl
     
     store = MemoryStore(vault)
     store.create_memory("semantic", "Atomic writes", "Use atomic Markdown writes.", {"status": "active"})
@@ -50,9 +50,9 @@ def test_mcp_recall_returns_structured_results(vault: Path):
 
 def test_save_auto_links_to_active_session(vault: Path):
     """save should auto-attach source_sessions when a session is active."""
-    from obsidian_memory.sessions import SessionStore
-    from obsidian_memory.mcp import _fields_with_session
-    from obsidian_memory.notes import read_note
+    from mnemosyne.sessions import SessionStore
+    from mnemosyne.mcp import _fields_with_session
+    from mnemosyne.notes import read_note
     
     sessions = SessionStore(vault)
     session = sessions.start("proj", None, None)
@@ -63,13 +63,13 @@ def test_save_auto_links_to_active_session(vault: Path):
     assert fields["source_sessions"] == [session.stem]
     
     # and create_memory actually writes it as a wiki-link
-    from obsidian_memory.store import MemoryStore
+    from mnemosyne.store import MemoryStore
     path = MemoryStore(vault).create_memory("semantic", "Linked", "B.", fields)
     meta, _ = read_note(path)
     assert meta["source_sessions"] == [f"[[{session.stem}]]"]
 
 
 def test_no_active_session_means_no_auto_link(vault: Path):
-    from obsidian_memory.mcp import _fields_with_session
+    from mnemosyne.mcp import _fields_with_session
     fields = _fields_with_session({"type": "semantic", "title": "T", "body": "B."}, vault)
     assert "source_sessions" not in fields

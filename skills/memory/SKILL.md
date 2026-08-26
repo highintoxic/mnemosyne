@@ -1,18 +1,18 @@
 ---
 name: memory
-description: Capture, retrieve, relate, review, and maintain durable local memory in an Obsidian vault. Use whenever durable user, project, agent, session, or workflow context should be recalled or saved. Available as MCP tools (obsidian-memory-mcp) or CLI (obsidian-memory).
+description: Capture, retrieve, relate, review, and maintain durable local memory in an Obsidian vault. Use whenever durable user, project, agent, session, or workflow context should be recalled or saved. Available as MCP tools (mnemosyne-mcp) or CLI (mnemosyne).
 ---
 
 # Obsidian Memory
 
-Use this skill whenever durable user, project, agent, session, or workflow context should be recalled or saved. The vault is `C:/Memory` (override with `OBSIDIAN_MEMORY_VAULT`).
+Use this skill whenever durable user, project, agent, session, or workflow context should be recalled or saved. The vault is `C:/Memory` (override with `MNEMOSYNE_VAULT`).
 
 ## Access
 
 The memory workspace is exposed two ways; prefer MCP tools when available:
 
-- **MCP tools** (registered as `obsidian-memory` in Claude Code): `init`, `save`, `recall`, `entity`, `session_start`, `session_finalize`, `session_context`, `promote`, `reject`, `supersede`, `review`, `index`, `doctor`.
-- **CLI**: `obsidian-memory <command> --vault <vault>` (defaults to `OBSIDIAN_MEMORY_VAULT` or `C:/Memory`).
+- **MCP tools** (registered as `mnemosyne` in Claude Code): `init`, `save`, `recall`, `entity`, `session_start`, `session_finalize`, `session_context`, `promote`, `reject`, `supersede`, `review`, `index`, `doctor`.
+- **CLI**: `mnemosyne <command> --vault <vault>` (defaults to `MNEMOSYNE_VAULT` or `C:/Memory`).
 
 ## Subskills
 
@@ -28,7 +28,7 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
 
 ## Workflow
 
-1. **Session start** — call `session_start` (or `obsidian-memory session start`) with the active project/user/agent, then `recall` for relevant context:
+1. **Session start** — call `session_start` (or `mnemosyne session start`) with the active project/user/agent, then `recall` for relevant context:
    ```
    recall("", limit=0)         # no-op
    recall(query="project conventions", limit=10)

@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.providers import TfidfProvider
-from obsidian_memory.retrieval import Retriever
-from obsidian_memory.store import MemoryStore
+from mnemosyne.config import VaultConfig
+from mnemosyne.providers import TfidfProvider
+from mnemosyne.retrieval import Retriever
+from mnemosyne.store import MemoryStore
 
 
 @pytest.fixture()

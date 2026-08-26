@@ -12,7 +12,7 @@ from .retrieval import Retriever
 from .sessions import SessionStore
 from .store import MemoryStore
 
-DEFAULT_VAULT = Path(os.environ.get("OBSIDIAN_MEMORY_VAULT", "C:/Memory"))
+DEFAULT_VAULT = Path(os.environ.get("MNEMOSYNE_VAULT", "C:/Memory"))
 
 
 def _common(parser: argparse.ArgumentParser) -> None:

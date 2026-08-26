@@ -1,7 +1,7 @@
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.notes import read_note
-from obsidian_memory.sessions import SessionStore
-from obsidian_memory.store import MemoryStore
+from mnemosyne.config import VaultConfig
+from mnemosyne.notes import read_note
+from mnemosyne.sessions import SessionStore
+from mnemosyne.store import MemoryStore
 
 
 def test_finalize_session_contains_required_sections(tmp_path):

@@ -25,7 +25,7 @@ Frontmatter: `type: question`, `question`, `answer`, `correct` (bool),
 `topic`, `difficulty`, plus optional `entities`/`source_sessions`/`related`.
 
 - MCP: `log_question(question, answer, correct, topic?, difficulty?)`
-- CLI: `obsidian-memory question --question "..." --answer "..." --correct true --topic databases --difficulty easy`
+- CLI: `mnemosyne question --question "..." --answer "..." --correct true --topic databases --difficulty easy`
 
 Correctness is a boolean; quizzes can record each question separately to keep
 a per-question history, or record only the questions the learner got wrong
@@ -37,7 +37,7 @@ Frontmatter: `type: decision`, `decision`, `context`, `options` (list),
 `chosen`, `rationale`.
 
 - MCP: `log_decision(decision, rationale, context?, options?, chosen?)`
-- CLI: `obsidian-memory decision --decision "Use Markdown" --context "..." --options A B C --chosen B --rationale "..."`
+- CLI: `mnemosyne decision --decision "Use Markdown" --context "..." --options A B C --chosen B --rationale "..."`
 
 Decisions are `active` by default. When a decision is reversed or replaced,
 `supersede` it (marks the old note `superseded`, links the new one with a
@@ -61,9 +61,9 @@ through MCP (preferred) or CLI:
 All records are retrievable with the standard tools:
 
 ```bash
-obsidian-memory recall --vault C:/Memory "database atomicity"          # exact + semantic
-obsidian-memory recall --vault C:/Memory --type question "databases"   # past quiz questions
-obsidian-memory recall --vault C:/Memory --type decision "Markdown"    # past decisions
+mnemosyne recall --vault C:/Memory "database atomicity"          # exact + semantic
+mnemosyne recall --vault C:/Memory --type question "databases"   # past quiz questions
+mnemosyne recall --vault C:/Memory --type decision "Markdown"    # past decisions
 ```
 
 `recall --type decision` is a ready-made decision log; `recall --type question

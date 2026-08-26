@@ -1,4 +1,4 @@
-from obsidian_memory.cli import main
+from mnemosyne.cli import main
 
 
 def test_cli_init_and_recall(tmp_path, capsys):

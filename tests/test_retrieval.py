@@ -1,7 +1,7 @@
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.relations import RelationStore
-from obsidian_memory.retrieval import Retriever
-from obsidian_memory.store import MemoryStore
+from mnemosyne.config import VaultConfig
+from mnemosyne.relations import RelationStore
+from mnemosyne.retrieval import Retriever
+from mnemosyne.store import MemoryStore
 
 
 def test_recall_matches_text_and_expands_related_notes(tmp_path):

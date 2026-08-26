@@ -1,6 +1,6 @@
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.maintenance import doctor, rebuild_index
-from obsidian_memory.relations import RelationStore
+from mnemosyne.config import VaultConfig
+from mnemosyne.maintenance import doctor, rebuild_index
+from mnemosyne.relations import RelationStore
 
 
 def test_doctor_reports_broken_relation_target(tmp_path):

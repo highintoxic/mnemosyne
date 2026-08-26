@@ -4,9 +4,9 @@ The memory workspace works with **any agent or harness** through three mechanism
 
 | Mechanism | What it does | Works with |
 |---|---|---|
-| **MCP server** (`obsidian-memory-mcp`) | Exposes all 13 memory operations as MCP tools; the harness discovers and calls them, and the agent can retrieve context on demand | Any MCP-capable client: Claude Code, Codex, Cursor, Gemini CLI, OpenCode, custom MCP clients |
+| **MCP server** (`mnemosyne-mcp`) | Exposes all 13 memory operations as MCP tools; the harness discovers and calls them, and the agent can retrieve context on demand | Any MCP-capable client: Claude Code, Codex, Cursor, Gemini CLI, OpenCode, custom MCP clients |
 | **Universal hooks** (`hooks/session-start.sh`, `hooks/session-end.sh`) | Auto-start a session, load context, and auto-finalize it from the journal — fail-open | Any harness that can run commands at session start/end, or a shell wrapper around `code` / `claude` / `codex` |
-| **CLI** (`obsidian-memory`) | Direct commands for scripts, cron, and manual use | Everything |
+| **CLI** (`mnemosyne`) | Direct commands for scripts, cron, and manual use | Everything |
 
 ## 1. MCP server (recommended for agent-driven retrieval)
 
@@ -18,10 +18,10 @@ Register the MCP server with any MCP client:
 // .claude/settings.json or ~/.claude/settings.json
 {
   "mcpServers": {
-    "obsidian-memory": {
-      "command": "obsidian-memory-mcp",
+    "mnemosyne": {
+      "command": "mnemosyne-mcp",
       "args": ["C:/Memory"],
-      "env": { "OBSIDIAN_MEMORY_VAULT": "C:/Memory" }
+      "env": { "MNEMOSYNE_VAULT": "C:/Memory" }
     }
   }
 }
@@ -30,8 +30,8 @@ Register the MCP server with any MCP client:
 ### Codex CLI (`~/.codex/config.toml`)
 
 ```toml
-[mcp_servers.obsidian-memory]
-command = "obsidian-memory-mcp"
+[mcp_servers.mnemosyne]
+command = "mnemosyne-mcp"
 args = ["C:/Memory"]
 ```
 
@@ -40,14 +40,14 @@ args = ["C:/Memory"]
 Settings → MCP → Add server:
 
 ```
-command: obsidian-memory-mcp
+command: mnemosyne-mcp
 args: ["C:/Memory"]
 ```
 
 ### Gemini CLI
 
 ```bash
-gemini mcp add obsidian-memory -- command "obsidian-memory-mcp" "C:/Memory"
+gemini mcp add mnemosyne -- command "mnemosyne-mcp" "C:/Memory"
 ```
 
 ### Any MCP client (generic)
@@ -55,8 +55,8 @@ gemini mcp add obsidian-memory -- command "obsidian-memory-mcp" "C:/Memory"
 ```json
 {
   "mcpServers": {
-    "obsidian-memory": {
-      "command": "obsidian-memory-mcp",
+    "mnemosyne": {
+      "command": "mnemosyne-mcp",
       "args": ["C:/Memory"]
     }
   }
@@ -77,12 +77,12 @@ Wrap your agent command so every session triggers memory hooks:
 ```bash
 # ~/bin/agent.sh — wrap claude, codex, cursor, gemini...
 #!/usr/bin/env sh
-export OBSIDIAN_MEMORY_VAULT="C:/Memory"
-export OBSIDIAN_MEMORY_PROJECT="${1:-}"
-export OBSIDIAN_MEMORY_PRINT_CONTEXT=1   # inject context into the model
-sh /c/Projects/obsidian-memory/hooks/session-start.sh
+export MNEMOSYNE_VAULT="C:/Memory"
+export MNEMOSYNE_PROJECT="${1:-}"
+export MNEMOSYNE_PRINT_CONTEXT=1   # inject context into the model
+sh /c/Projects/mnemosyne/hooks/session-start.sh
 "$@"                                   # run the actual agent
-sh /c/Projects/obsidian-memory/hooks/session-end.sh
+sh /c/Projects/mnemosyne/hooks/session-end.sh
 ```
 
 ```bash
@@ -96,35 +96,35 @@ auto-finalizes the session with a complete overview built from the journal.
 ### Claude Code plugin hooks (already included)
 
 `.claude-plugin/hooks/session-start.sh` and `session-end.sh` do the same for
-Claude Code natively, reading `OBSIDIAN_MEMORY_VAULT` / `OBSIDIAN_MEMORY_SESSION_ID`.
+Claude Code natively, reading `MNEMOSYNE_VAULT` / `MNEMOSYNE_SESSION_ID`.
 
 ### Codex CLI (`~/.codex/config.toml`)
 
 ```toml
 [hooks]
-SessionStart = { command = "sh /c/Projects/obsidian-memory/hooks/session-start.sh" }
-SessionEnd   = { command = "sh /c/Projects/obsidian-memory/hooks/session-end.sh" }
+SessionStart = { command = "sh /c/Projects/mnemosyne/hooks/session-start.sh" }
+SessionEnd   = { command = "sh /c/Projects/mnemosyne/hooks/session-end.sh" }
 ```
 
 ## 3. CLI (direct, scriptable)
 
 ```bash
-obsidian-memory --vault C:/Memory recall "project conventions"
-obsidian-memory --vault C:/Memory save --type semantic --title "X" --body "Y"
-obsidian-memory --vault C:/Memory session context --project research
+mnemosyne --vault C:/Memory recall "project conventions"
+mnemosyne --vault C:/Memory save --type semantic --title "X" --body "Y"
+mnemosyne --vault C:/Memory session context --project research
 ```
 
 ## Environment variables (all mechanisms)
 
 | Variable | Purpose |
 |---|---|
-| `OBSIDIAN_MEMORY_VAULT` | Vault path (default `C:/Memory`) |
-| `OBSIDIAN_MEMORY_PROJECT` | Scope context to a project entity |
-| `OBSIDIAN_MEMORY_USER` | Active user entity ID |
-| `OBSIDIAN_MEMORY_AGENT` | Active agent entity ID |
-| `OBSIDIAN_MEMORY_SESSION_ID` | Session to finalize (end hook) |
-| `OBSIDIAN_MEMORY_PRINT_CONTEXT` | `1` = print context to stdout at start (direct model injection) |
-| `OBSIDIAN_MEMORY_LOG` | Log file for hook failures (default `vault/.memory/hooks.log`) |
+| `MNEMOSYNE_VAULT` | Vault path (default `C:/Memory`) |
+| `MNEMOSYNE_PROJECT` | Scope context to a project entity |
+| `MNEMOSYNE_USER` | Active user entity ID |
+| `MNEMOSYNE_AGENT` | Active agent entity ID |
+| `MNEMOSYNE_SESSION_ID` | Session to finalize (end hook) |
+| `MNEMOSYNE_PRINT_CONTEXT` | `1` = print context to stdout at start (direct model injection) |
+| `MNEMOSYNE_LOG` | Log file for hook failures (default `vault/.memory/hooks.log`) |
 
 ## Retrieval behavior inside the agent
 

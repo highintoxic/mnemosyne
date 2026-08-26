@@ -1,9 +1,9 @@
-from obsidian_memory.journal import Journal
-from obsidian_memory.config import VaultConfig
-from obsidian_memory.notes import read_note
-from obsidian_memory.privacy import is_ignored, redact_sensitive
-from obsidian_memory.relations import RelationStore
-from obsidian_memory.store import MemoryStore
+from mnemosyne.journal import Journal
+from mnemosyne.config import VaultConfig
+from mnemosyne.notes import read_note
+from mnemosyne.privacy import is_ignored, redact_sensitive
+from mnemosyne.relations import RelationStore
+from mnemosyne.store import MemoryStore
 
 
 def test_redacts_common_token():

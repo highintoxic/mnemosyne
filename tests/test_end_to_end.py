@@ -1,9 +1,9 @@
-from obsidian_memory.cli import main
-from obsidian_memory.maintenance import doctor, rebuild_index
-from obsidian_memory.relations import RelationStore
-from obsidian_memory.retrieval import Retriever
-from obsidian_memory.sessions import SessionStore
-from obsidian_memory.store import MemoryStore
+from mnemosyne.cli import main
+from mnemosyne.maintenance import doctor, rebuild_index
+from mnemosyne.relations import RelationStore
+from mnemosyne.retrieval import Retriever
+from mnemosyne.sessions import SessionStore
+from mnemosyne.store import MemoryStore
 
 
 def test_complete_offline_workflow(tmp_path):
