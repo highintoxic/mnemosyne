@@ -81,8 +81,8 @@ class MCPMemoryServer:
                                    "source_sessions": {"type": "array", "items": {"type": "string"}},
                                    "related": {"type": "array", "items": {"type": "string"}},
                                    "supersede": {"type": "string", "description": "old note ID this supersedes"}}},
-                   lambda a: str(_store(a).supersede(a["supersede"], a["type"], a["title"], a["body"], _fields(a))
-                                 if a.get("supersede") else _store(a).create_memory(a["type"], a["title"], a["body"], _fields(a))))
+                   lambda a: str(_store(a).supersede(a["supersede"], a["type"], a["title"], a["body"], _fields_with_session(a, Path(a.get("vault", str(self.vault)))))
+                                 if a.get("supersede") else _store(a).create_memory(a["type"], a["title"], a["body"], _fields_with_session(a, Path(a.get("vault", str(self.vault)))))))
 
         self._tool("recall", "Retrieve relevant memory context",
                    {"type": "object", "required": ["query"],
@@ -149,6 +149,25 @@ def _fields(args: dict[str, Any]) -> dict[str, Any]:
     for key in ("entities", "source_sessions", "related"):
         if key in args:
             fields[key] = args[key]
+    return fields
+
+
+def active_session_id(vault: Path) -> str | None:
+    """Return the active session ID from the current-session marker, if any."""
+    marker = Path(vault) / ".memory/current-session.txt"
+    try:
+        value = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
+
+
+def _fields_with_session(args: dict[str, Any], vault: Path) -> dict[str, Any]:
+    fields = _fields(args)
+    if "source_sessions" not in fields:
+        active = active_session_id(vault)
+        if active:
+            fields["source_sessions"] = [active]
     return fields
 
 

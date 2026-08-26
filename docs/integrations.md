@@ -140,8 +140,16 @@ Use atomic Markdown writes with replace operations.
 - Related notes are pulled in through typed relations (graph expansion).
 - Results include the source path and confidence so the agent can cite them.
 
+## Automatic session linking (keeps memories up to date)
+
+While a session is active (started by the hooks, tracked in `vault/.memory/current-session.txt`), every `save` via the MCP server **automatically attaches the active session** to `source_sessions` — so every memory written during a session is traceable back to it. At session end, the overview's Work section lists all memories created in that window.
+
+To disable auto-linking for a specific save, pass `source_sessions: []` explicitly.
+
 ## Verified
 
 The MCP stdio server was verified with a live `initialize` → `tools/call save`
 → `tools/call recall` round trip (13 tools listed, memory created and
-retrieved). All 29+ tests pass.
+retrieved). All 34+ tests pass. The user-level Claude Code hooks were
+verified under `cmd` exactly as Claude Code invokes them: session-start
+creates the marker, session-end finalizes to `status: complete`.

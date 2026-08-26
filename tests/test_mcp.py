@@ -45,3 +45,30 @@ def test_mcp_recall_returns_structured_results(vault: Path):
     assert isinstance(result, list)
     assert len(result) >= 1
     assert all("id" in item and "title" in item and "type" in item for item in result)
+
+
+def test_save_auto_links_to_active_session(vault: Path):
+    """save should auto-attach source_sessions when a session is active."""
+    from obsidian_memory.sessions import SessionStore
+    from obsidian_memory.mcp import _fields_with_session
+    from obsidian_memory.notes import read_note
+    
+    sessions = SessionStore(vault)
+    session = sessions.start("proj", None, None)
+    # persist the marker the start hook writes
+    (vault / ".memory/current-session.txt").write_text(session.stem, encoding="utf-8")
+    
+    fields = _fields_with_session({"type": "semantic", "title": "Linked", "body": "B."}, vault)
+    assert fields["source_sessions"] == [session.stem]
+    
+    # and create_memory actually writes it as a wiki-link
+    from obsidian_memory.store import MemoryStore
+    path = MemoryStore(vault).create_memory("semantic", "Linked", "B.", fields)
+    meta, _ = read_note(path)
+    assert meta["source_sessions"] == [f"[[{session.stem}]]"]
+
+
+def test_no_active_session_means_no_auto_link(vault: Path):
+    from obsidian_memory.mcp import _fields_with_session
+    fields = _fields_with_session({"type": "semantic", "title": "T", "body": "B."}, vault)
+    assert "source_sessions" not in fields
