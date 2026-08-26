@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# obsidian-memory universal session hook.
+# mnemosyne universal session hook.
 #
 # Works with ANY agent/harness that can run a command at session start/end
 # (Claude Code, Codex, Cursor, Gemini CLI, shell wrappers, etc.).
@@ -26,19 +26,19 @@ LOGFILE="${MNEMOSYNE_LOG:-$MNEMOSYNE_VAULT/.memory/hooks.log}"
 mkdir -p "$(dirname "$LOGFILE")" 2>/dev/null
 
 if [ -z "${MNEMOSYNE_VAULT:-}" ]; then
-  echo "obsidian-memory: MNEMOSYNE_VAULT not set; skipping" >> "$LOGFILE" 2>&1
+  echo "mnemosyne: MNEMOSYNE_VAULT not set; skipping" >> "$LOGFILE" 2>&1
   exit 0
 fi
 
-if ! command -v obsidian-memory >/dev/null 2>&1; then
-  echo "obsidian-memory: CLI not on PATH; skipping" >> "$LOGFILE" 2>&1
+if ! command -v mnemosyne >/dev/null 2>&1; then
+  echo "mnemosyne: CLI not on PATH; skipping" >> "$LOGFILE" 2>&1
   exit 0
 fi
 
 echo "[$(date -u +%FT%TZ)] session-start for ${MNEMOSYNE_PROJECT:-all-projects}" >> "$LOGFILE" 2>&1
 
 # Start a session and remember its ID for the end hook.
-SESSION_ID=$(obsidian-memory session --vault "$MNEMOSYNE_VAULT" start \
+SESSION_ID=$(mnemosyne session --vault "$MNEMOSYNE_VAULT" start \
   --project "${MNEMOSYNE_PROJECT:-}" \
   --user "${MNEMOSYNE_USER:-}" \
   --agent "${MNEMOSYNE_AGENT:-}" 2>>"$LOGFILE" | sed 's/.*[\\\/]//; s/\.md$//' | tr -d '[:space:]')
@@ -49,13 +49,13 @@ if [ -n "$SESSION_ID" ]; then
 fi
 
 # Load relevant context: recent sessions + semantic recall of open context.
-obsidian-memory session --vault "$MNEMOSYNE_VAULT" context \
+mnemosyne session --vault "$MNEMOSYNE_VAULT" context \
   --project "${MNEMOSYNE_PROJECT:-}" --limit 10 >> "$LOGFILE" 2>&1
 
 # Optionally print context to stdout for direct injection into the model.
 if [ "${MNEMOSYNE_PRINT_CONTEXT:-0}" = "1" ]; then
   echo "=== MEMORY CONTEXT ==="
-  obsidian-memory session --vault "$MNEMOSYNE_VAULT" context \
+  mnemosyne session --vault "$MNEMOSYNE_VAULT" context \
     --project "${MNEMOSYNE_PROJECT:-}" --limit 5 2>/dev/null
 fi
 

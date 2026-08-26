@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# obsidian-memory universal session-end hook.
+# mnemosyne universal session-end hook.
 #
 # Finalizes the session started by session-start.sh (if a session ID was
 # persisted), building the overview automatically from journal events.
@@ -9,11 +9,11 @@ LOGFILE="${MNEMOSYNE_LOG:-$MNEMOSYNE_VAULT/.memory/hooks.log}"
 mkdir -p "$(dirname "$LOGFILE")" 2>/dev/null
 
 if [ -z "${MNEMOSYNE_VAULT:-}" ]; then
-  echo "obsidian-memory: MNEMOSYNE_VAULT not set; skipping" >> "$LOGFILE" 2>&1
+  echo "mnemosyne: MNEMOSYNE_VAULT not set; skipping" >> "$LOGFILE" 2>&1
   exit 0
 fi
-if ! command -v obsidian-memory >/dev/null 2>&1; then
-  echo "obsidian-memory: CLI not on PATH; skipping" >> "$LOGFILE" 2>&1
+if ! command -v mnemosyne >/dev/null 2>&1; then
+  echo "mnemosyne: CLI not on PATH; skipping" >> "$LOGFILE" 2>&1
   exit 0
 fi
 
@@ -26,7 +26,7 @@ fi
 
 if [ -n "$SESSION_ID" ]; then
   # Build the overview automatically from journaled memory/relation events.
-  obsidian-memory session --vault "$MNEMOSYNE_VAULT" finalize \
+  mnemosyne session --vault "$MNEMOSYNE_VAULT" finalize \
     --id "$SESSION_ID" --auto >> "$LOGFILE" 2>&1
   rm -f "$MNEMOSYNE_VAULT/.memory/current-session.txt"
 fi
