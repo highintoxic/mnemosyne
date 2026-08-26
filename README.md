@@ -181,7 +181,7 @@ misses, and decisions durable, re-testable memory.
 ## Development
 
 ```bash
-python -m pip install -e .
+python -m pip install -e ".[dev]"   # installs pytest for development
 python -m pytest -q        # 45+ tests, stdlib only
 python -m compileall -q src
 ```

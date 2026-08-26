@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Local-first linked memory workspace for Obsidian and Claude Code"
 requires-python = ">=3.11"
 
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
 [project.scripts]
 mnemosyne = "mnemosyne.cli:main"
 mnemosyne-mcp = "mnemosyne.mcp:main"
