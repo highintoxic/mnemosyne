@@ -10,7 +10,7 @@ def test_create_project_and_semantic_memory_links_entity(tmp_path):
     memory = store.create_memory("semantic", "Canonical store", "Markdown is canonical.", {"entities": [project.stem]})
     metadata, body = read_note(memory)
     assert metadata["type"] == "semantic"
-    assert project.stem in metadata["entities"]
+    assert f"[[{project.stem}]]" in metadata["entities"]
     assert body.startswith("Markdown")
 
 

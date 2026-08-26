@@ -3,9 +3,10 @@ from pathlib import Path
 import pytest
 
 from obsidian_memory.config import VaultConfig
-from obsidian_memory.relations import RelationStore
-from obsidian_memory.store import MemoryStore
 from obsidian_memory.notes import read_note
+from obsidian_memory.relations import RelationStore
+from obsidian_memory.sessions import SessionStore
+from obsidian_memory.store import MemoryStore
 
 
 @pytest.fixture()
@@ -45,3 +46,26 @@ def test_supersede_missing_old_note_fails(vault: Path):
     store = MemoryStore(vault)
     with pytest.raises(FileNotFoundError):
         store.supersede("missing_id", kind="semantic", title="X", body="Y")
+
+
+def test_link_fields_written_as_wiki_links(vault: Path):
+    store = MemoryStore(vault)
+    project = store.create_entity("project", "Graph Project", {})
+    session = SessionStore(vault).start(project.stem, None, None)
+    memory = store.create_memory("semantic", "Linked claim", "Body.", {
+        "entities": [project.stem],
+        "source_sessions": [session.stem],
+        "related": ["mem_other"],
+    })
+    meta = read_note(memory)[0]
+    assert meta["entities"] == [f"[[{project.stem}]]"]
+    assert meta["source_sessions"] == [f"[[{session.stem}]]"]
+    assert meta["related"] == ["[[mem_other]]"]
+
+
+def test_self_relation_rejected(vault: Path):
+    store = MemoryStore(vault)
+    memory = store.create_memory("semantic", "Solo", "Body.", {})
+    identifier = read_note(memory)[0]["id"]
+    with pytest.raises(ValueError, match="self-relation"):
+        RelationStore(vault).add(identifier, "related-to", identifier)

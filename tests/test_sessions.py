@@ -25,7 +25,7 @@ def test_finalize_extracts_source_linked_candidate_memories(tmp_path):
     assert len(memories) == 1
     metadata, _ = read_note(memories[0])
     assert metadata["status"] == "candidate"
-    assert path.stem in metadata["source_sessions"]
+    assert f"[[{path.stem}]]" in metadata["source_sessions"]
 
 
 def test_session_redacts_sensitive_request_and_context(tmp_path):

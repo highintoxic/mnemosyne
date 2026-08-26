@@ -24,7 +24,11 @@ def test_journal_appends_jsonl(tmp_path):
 
 def test_entity_and_relation_evidence_are_redacted(tmp_path):
     VaultConfig.initialize(tmp_path)
-    entity = MemoryStore(tmp_path).create_entity("project", "Private", {"description": "token=ghp_abcdefghijklmnopqrstuvwxyz123456"})
-    relation = RelationStore(tmp_path).add(entity.stem, "related-to", entity.stem, "Bearer abcdefghijklmnopqrstuvwxyz")
+    store = MemoryStore(tmp_path)
+    relations = RelationStore(tmp_path)
+    entity = store.create_entity("project", "Private", {"description": "token=ghp_abcdefghijklmnopqrstuvwxyz123456"})
+    target_mem = store.create_memory("semantic", "Target", "Body.", {})
+    target_id = read_note(target_mem)[0]["id"]
+    relation = relations.add(entity.stem, "related-to", target_id, "Bearer abcdefghijklmnopqrstuvwxyz")
     assert "ghp_" not in read_note(entity)[1]
     assert "Bearer abc" not in read_note(relation)[1]

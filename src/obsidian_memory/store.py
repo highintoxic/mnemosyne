@@ -28,10 +28,24 @@ def _link(identifier: str) -> str:
 
 
 class MemoryStore:
+    LINK_FIELDS = {"entities", "source_sessions", "related"}
+
     def __init__(self, vault: Path):
         self.config = VaultConfig.load(Path(vault))
         self.vault = self.config.vault
         self.journal = Journal(self.vault / ".memory/journal/events.jsonl")
+
+    def _normalize_links(self, fields: dict[str, object]) -> dict[str, object]:
+        out = dict(fields)
+        for field in self.LINK_FIELDS:
+            values = out.get(field)
+            if values is None:
+                continue
+            if isinstance(values, str):
+                values = [values]
+            if isinstance(values, list):
+                out[field] = [v if isinstance(v, str) and v.startswith('[[') else f'[[{v}]]' for v in values]
+        return out
 
     def create_entity(self, kind: str, title: str, fields: dict[str, object]) -> Path:
         fields = dict(fields)
@@ -65,7 +79,7 @@ class MemoryStore:
         metadata = {"memory_schema": 1, "id": identifier, "type": kind, "title": title,
                     "status": fields.pop("status", "candidate"), "created": _now(), "updated": _now(),
                     "confidence": fields.pop("confidence", 0.5), "importance": fields.pop("importance", 0.5),
-                    "tags": fields.pop("tags", [f"memory/{kind}"]), **fields}
+                    "tags": fields.pop("tags", [f"memory/{kind}"]), **self._normalize_links(fields)}
         write_note(path, metadata, clean)
         self.journal.append({"event": "memory_created", "id": identifier, "path": str(path.relative_to(self.vault)), "redactions": findings})
         return path

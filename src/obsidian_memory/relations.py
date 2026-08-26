@@ -19,6 +19,8 @@ class RelationStore:
         self.journal = Journal(self.vault / ".memory/journal/events.jsonl")
 
     def add(self, source: str, relation: str, target: str, evidence: str | None = None) -> Path:
+        if source == target:
+            raise ValueError("self-relation not allowed")
         relation = relation.lower()
         if relation not in RELATIONS:
             raise ValueError(f"unsupported relation: {relation}")
