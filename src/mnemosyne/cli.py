@@ -21,7 +21,7 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="obsidian-memory", description="Local-first Obsidian memory workspace")
+    parser = argparse.ArgumentParser(prog="mnemosyne", description="Local-first agent memory workspace backed by an Obsidian vault")
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="initialize a vault"); _common(init); init.add_argument("--dry-run", action="store_true")
     save = sub.add_parser("save", help="save a typed memory"); _common(save); save.add_argument("--type", required=True); save.add_argument("--title", required=True); save.add_argument("--body", required=True); save.add_argument("--status", default="candidate"); save.add_argument("--confidence", type=float, default=.5); save.add_argument("--importance", type=float, default=.5); save.add_argument("--supersede", metavar="OLD_ID", default=None, help="mark this note superseded and link the new one")
