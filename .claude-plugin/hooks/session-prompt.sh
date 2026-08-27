@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # mnemosyne UserPromptSubmit hook — fires on EVERY user prompt.
 #
-# 1. Ensures a session is active (lazy-start if the marker is missing).
+# 1. Ensures a session is active for THIS harness session (lazy-start).
 # 2. Appends the prompt to the session's Activity Log (timestamped, redacted).
 # 3. When MNEMOSYNE_PRINT_CONTEXT=1, prints up to
 #    MNEMOSYNE_CONTEXT_LIMIT (default 3) memories relevant to the
@@ -31,17 +31,15 @@ except (json.JSONDecodeError, OSError):
 print(str(data.get("prompt", ""))[:2000])' 2>>"$LOGFILE")
 fi
 
-# Lazy-start a session if none is active.
-SID=""
-if [ -f "$MNEMOSYNE_VAULT/.memory/current-session.txt" ]; then
-  SID=$(cat "$MNEMOSYNE_VAULT/.memory/current-session.txt" 2>/dev/null | tr -d '[:space:]')
-fi
+# Scope the session to a project; the directory name is the default project id.
+MNEMOSYNE_PROJECT="${MNEMOSYNE_PROJECT:-$(basename "$PWD")}"
+
+# Lazy-start a session if none is active for this harness session.
+SID=$(mnemosyne session --vault "$MNEMOSYNE_VAULT" current 2>/dev/null | tr -d '[:space:]')
 if [ -z "$SID" ]; then
-  SID=$(mnemosyne session --vault "$MNEMOSYNE_VAULT" start \
-    --project "${MNEMOSYNE_PROJECT:-}" 2>>"$LOGFILE" | sed 's/.*[\\\/]//; s/\.md$//' | tr -d '[:space:]')
-  if [ -n "$SID" ]; then
-    echo "$SID" > "$MNEMOSYNE_VAULT/.memory/current-session.txt"
-  fi
+  mnemosyne session --vault "$MNEMOSYNE_VAULT" start \
+    --project "$MNEMOSYNE_PROJECT" >> "$LOGFILE" 2>&1
+  SID=$(mnemosyne session --vault "$MNEMOSYNE_VAULT" current 2>/dev/null | tr -d '[:space:]')
 fi
 
 # Log the prompt as activity in the live session note.

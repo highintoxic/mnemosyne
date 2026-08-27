@@ -5,7 +5,7 @@ import json
 
 from .config import VaultConfig
 from .ids import new_id
-from .journal import Journal
+from .journal import Journal, clear_marker, write_marker
 from .notes import read_note, write_note
 from .privacy import is_ignored, redact_sensitive
 from .store import MemoryStore
@@ -40,7 +40,7 @@ class SessionStore:
         write_note(path, metadata, body)
         # Store the note stem (not the bare id) so auto-created wiki-links resolve
         # to the session note in Obsidian, matching what the session-start hook writes.
-        (self.vault / ".memory" / "current-session.txt").write_text(path.stem, encoding="utf-8")
+        write_marker(self.vault, path.stem)
         self.journal = Journal(self.vault / ".memory/journal/events.jsonl", session_id=path.stem)
         self.journal.append({"event": "session_started", "id": identifier})
         return path
@@ -78,6 +78,7 @@ class SessionStore:
             fields = dict(memory.get("fields", {}))
             fields["source_sessions"] = [path.stem]
             MemoryStore(self.vault).create_memory(str(memory["type"]), str(memory["title"]), str(memory.get("body", "")), fields)
+        clear_marker(self.vault, path.stem)
         self.journal.append({"event": "session_finalized", "id": metadata["id"]})
         return path
 

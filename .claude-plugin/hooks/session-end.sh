@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
 # mnemosyne universal session-end hook.
 #
-# Finalizes the session started by session-start.sh (if a session ID was
-# persisted), building the overview automatically from journal events.
+# Finalizes the session started by session-start.sh, building the overview
+# automatically from journal events. `finalize` clears this session's marker;
+# markers belonging to other concurrent sessions are left alone.
 # FAIL-OPEN: never blocks the harness.
 set +e
 LOGFILE="${MNEMOSYNE_LOG:-$MNEMOSYNE_VAULT/.memory/hooks.log}"
@@ -20,15 +21,13 @@ fi
 echo "[$(date -u +%FT%TZ)] session-end" >> "$LOGFILE" 2>&1
 
 SESSION_ID="${MNEMOSYNE_SESSION_ID:-}"
-if [ -z "$SESSION_ID" ] && [ -f "$MNEMOSYNE_VAULT/.memory/current-session.txt" ]; then
-  SESSION_ID=$(cat "$MNEMOSYNE_VAULT/.memory/current-session.txt" 2>/dev/null | tr -d '[:space:]')
+if [ -z "$SESSION_ID" ]; then
+  SESSION_ID=$(mnemosyne session --vault "$MNEMOSYNE_VAULT" current 2>/dev/null | tr -d '[:space:]')
 fi
 
 if [ -n "$SESSION_ID" ]; then
-  # Build the overview automatically from journaled memory/relation events.
   mnemosyne session --vault "$MNEMOSYNE_VAULT" finalize \
     --id "$SESSION_ID" --auto >> "$LOGFILE" 2>&1
-  rm -f "$MNEMOSYNE_VAULT/.memory/current-session.txt"
 fi
 
 # Always leave the log clean for the harness.

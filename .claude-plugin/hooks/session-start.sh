@@ -14,11 +14,13 @@
 #
 # Environment:
 #   MNEMOSYNE_VAULT   (required) vault path, e.g. C:/Memory
-#   MNEMOSYNE_PROJECT (optional) project entity ID to scope context
+#   MNEMOSYNE_PROJECT (optional) project entity ID; defaults to the directory name
 #   MNEMOSYNE_AGENT   (optional) agent entity ID
 #   MNEMOSYNE_USER    (optional) user entity ID
-#   MNEMOSYNE_SESSION_ID (optional, end only) session note ID to finalize
 #   MNEMOSYNE_LOG     (optional) log file for failures (default: vault/.memory/hooks.log)
+#
+# Concurrent sessions are kept apart by a per-session marker the CLI writes,
+# keyed by MNEMOSYNE_SESSION_KEY or CLAUDE_CODE_SESSION_ID.
 #
 # Hooks are FAIL-OPEN: any failure is logged and the script exits 0.
 set +e
@@ -35,28 +37,28 @@ if ! command -v mnemosyne >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "[$(date -u +%FT%TZ)] session-start for ${MNEMOSYNE_PROJECT:-all-projects}" >> "$LOGFILE" 2>&1
+# Scope the session to a project. Harnesses run hooks in the project
+# directory, so its name is the default project id.
+MNEMOSYNE_PROJECT="${MNEMOSYNE_PROJECT:-$(basename "$PWD")}"
 
-# Start a session and remember its ID for the end hook.
-SESSION_ID=$(mnemosyne session --vault "$MNEMOSYNE_VAULT" start \
-  --project "${MNEMOSYNE_PROJECT:-}" \
+echo "[$(date -u +%FT%TZ)] session-start for $MNEMOSYNE_PROJECT" >> "$LOGFILE" 2>&1
+
+# Start a session. The CLI writes the session marker itself, keyed to this
+# harness session, so a second session cannot steal the first one's memories.
+mnemosyne session --vault "$MNEMOSYNE_VAULT" start \
+  --project "$MNEMOSYNE_PROJECT" \
   --user "${MNEMOSYNE_USER:-}" \
-  --agent "${MNEMOSYNE_AGENT:-}" 2>>"$LOGFILE" | sed 's/.*[\\\/]//; s/\.md$//' | tr -d '[:space:]')
+  --agent "${MNEMOSYNE_AGENT:-}" >> "$LOGFILE" 2>&1
 
-if [ -n "$SESSION_ID" ]; then
-  # Persist the session ID so the session-end hook can finalize this session.
-  echo "$SESSION_ID" > "$MNEMOSYNE_VAULT/.memory/current-session.txt"
-fi
-
-# Load relevant context: recent sessions + semantic recall of open context.
+# Load relevant context: recent sessions for this project.
 mnemosyne session --vault "$MNEMOSYNE_VAULT" context \
-  --project "${MNEMOSYNE_PROJECT:-}" --limit 10 >> "$LOGFILE" 2>&1
+  --project "$MNEMOSYNE_PROJECT" --limit 10 >> "$LOGFILE" 2>&1
 
 # Optionally print context to stdout for direct injection into the model.
 if [ "${MNEMOSYNE_PRINT_CONTEXT:-0}" = "1" ]; then
   echo "=== MEMORY CONTEXT ==="
   mnemosyne session --vault "$MNEMOSYNE_VAULT" context \
-    --project "${MNEMOSYNE_PROJECT:-}" --limit 5 2>/dev/null
+    --project "$MNEMOSYNE_PROJECT" --limit 5 2>/dev/null
 fi
 
 exit 0

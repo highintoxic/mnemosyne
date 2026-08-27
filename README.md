@@ -55,6 +55,9 @@ Mnemosyne gives agents **real memory that lives in your own vault**:
 `supports · contradicts · derived-from · implements · blocked-by · supersedes · part-of · applies-to · related-to` — first-class notes with wiki-links, so the whole vault connects in **Obsidian's Graph View**.
 
 ### 🤖 Automatic session lifecycle
+Sessions are scoped to a project (the working directory's name by default) and
+keyed by the harness session id, so two agents running at once keep their own
+memories instead of the last one to start claiming them all.
 ```
 SessionStart      → create session, inject relevant context
 UserPromptSubmit  → log every prompt, inject per-prompt memory
@@ -108,7 +111,7 @@ mnemosyne entity    project|user|agent --title T [--description]
 mnemosyne question  --question Q --answer A [--correct] [--topic] [--difficulty]
 mnemosyne decision  --decision D --rationale R [--context] [--options ...] [--chosen]
 mnemosyne quiz      --topic T --score N --total M [--weak-areas ...] [--questions ...]
-mnemosyne session   start|update|finalize|context
+mnemosyne session   start|update|finalize|context|current
 mnemosyne review    [--promote ID] [--reject ID]
 mnemosyne doctor    # diagnose broken links, orphans, contradictions
 ```

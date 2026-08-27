@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .config import VaultConfig
+from .journal import current_session_id
 from .maintenance import doctor, review
 from .providers import TfidfProvider
 from .relations import RelationStore
@@ -185,20 +186,10 @@ def _fields(args: dict[str, Any]) -> dict[str, Any]:
     return fields
 
 
-def active_session_id(vault: Path) -> str | None:
-    """Return the active session ID from the current-session marker, if any."""
-    marker = Path(vault) / ".memory/current-session.txt"
-    try:
-        value = marker.read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    return value or None
-
-
 def _fields_with_session(args: dict[str, Any], vault: Path) -> dict[str, Any]:
     fields = _fields(args)
     if "source_sessions" not in fields:
-        active = active_session_id(vault)
+        active = current_session_id(vault)
         if active:
             fields["source_sessions"] = [active]
     return fields

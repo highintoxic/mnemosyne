@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 
 from .config import VaultConfig
+from .journal import current_session_id
 from .maintenance import doctor, review
 from .providers import TfidfProvider
 from .retrieval import Retriever
@@ -28,7 +29,7 @@ def _parser() -> argparse.ArgumentParser:
     update = sub.add_parser("update", help="amend a memory in place"); _common(update); update.add_argument("--id", required=True); update.add_argument("--body"); update.add_argument("--title"); update.add_argument("--confidence", type=float); update.add_argument("--importance", type=float)
     recall = sub.add_parser("recall", help="retrieve linked context"); _common(recall); recall.add_argument("query"); recall.add_argument("--type"); recall.add_argument("--limit", type=int, default=10); recall.add_argument("--semantic", action="store_true", help="blend TF-IDF semantic ranking")
     entity = sub.add_parser("entity", help="create a user, project, or agent"); _common(entity); entity.add_argument("kind", choices=("user", "person", "project", "agent")); entity.add_argument("--title", required=True); entity.add_argument("--description", default="")
-    session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context", "update")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}"); session.add_argument("--auto", action="store_true", help="build the overview from journal events"); session.add_argument("--decisions", nargs="*", default=None); session.add_argument("--goals", nargs="*", default=None); session.add_argument("--text", default=None, help="activity entry to append (session update)")
+    session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context", "update", "current")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}"); session.add_argument("--auto", action="store_true", help="build the overview from journal events"); session.add_argument("--decisions", nargs="*", default=None); session.add_argument("--goals", nargs="*", default=None); session.add_argument("--text", default=None, help="activity entry to append (session update)")
     review = sub.add_parser("review", help="review candidates and conflicts"); _common(review); review.add_argument("--promote", metavar="ID"); review.add_argument("--reject", metavar="ID")
     question = sub.add_parser("question", help="record a quiz/learning question"); _common(question); question.add_argument("--question", required=True); question.add_argument("--answer", required=True); question.add_argument("--correct", type=lambda v: v.lower() in ("true", "1", "yes"), default=True); question.add_argument("--topic"); question.add_argument("--difficulty")
     decision = sub.add_parser("decision", help="record a decision with rationale"); _common(decision); decision.add_argument("--decision", required=True); decision.add_argument("--context", default=""); decision.add_argument("--options", nargs="*", default=None); decision.add_argument("--chosen"); decision.add_argument("--rationale", required=True)
@@ -83,6 +84,8 @@ def main(argv: list[str] | None = None) -> int:
                     result = store.finalize_auto(args.id, decisions=args.decisions, goals=args.goals)
                 else:
                     result = store.finalize(args.id, json.loads(args.overview))
+            elif args.action == "current":
+                result = current_session_id(vault) or ""
             elif args.action == "update":
                 if not args.id or not args.text: raise ValueError("--id and --text are required for session update")
                 result = store.update_activity(args.id, args.text)

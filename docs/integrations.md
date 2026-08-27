@@ -119,10 +119,11 @@ mnemosyne --vault C:/Memory session context --project research
 | Variable | Purpose |
 |---|---|
 | `MNEMOSYNE_VAULT` | Vault path (default `C:/Memory`) |
-| `MNEMOSYNE_PROJECT` | Scope context to a project entity |
+| `MNEMOSYNE_PROJECT` | Scope context to a project entity (default: the working directory's name) |
 | `MNEMOSYNE_USER` | Active user entity ID |
 | `MNEMOSYNE_AGENT` | Active agent entity ID |
 | `MNEMOSYNE_SESSION_ID` | Session to finalize (end hook) |
+| `MNEMOSYNE_SESSION_KEY` | Harness session id, keeping concurrent sessions apart (falls back to `CLAUDE_CODE_SESSION_ID`) |
 | `MNEMOSYNE_PRINT_CONTEXT` | `1` = print context to stdout at start (direct model injection) |
 | `MNEMOSYNE_LOG` | Log file for hook failures (default `vault/.memory/hooks.log`) |
 
