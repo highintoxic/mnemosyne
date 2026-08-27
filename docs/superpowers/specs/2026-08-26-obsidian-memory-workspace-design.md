@@ -1,5 +1,9 @@
 # Obsidian Memory Workspace — Design Specification
 
+> **2026-08-28:** the disposable on-disk search index described in the original
+> design was never read by retrieval and has been removed. This document has
+> been updated to match the shipped system.
+
 **Date:** 2026-08-26  
 **Status:** Approved for specification review  
 **Target:** Claude Code plugin + portable memory skill backed by an Obsidian vault
@@ -8,7 +12,7 @@
 
 Build a local-first memory workspace that lets Claude Code and other compatible agents capture, organize, retrieve, and maintain durable context in an Obsidian vault. Obsidian Markdown and YAML frontmatter are the canonical data store. The Claude Code plugin supplies commands and lifecycle hooks; a portable skill supplies the taxonomy, schemas, linking rules, privacy rules, and retrieval behavior.
 
-The system supports projects, users, agents, complete session overviews, typed memories, explicit relations, hybrid retrieval, review workflows, and disposable derived indexes. Optional embedding or summarization providers may improve results but are never required for basic operation.
+The system supports projects, users, agents, complete session overviews, typed memories, explicit relations, hybrid retrieval, and review workflows. Optional embedding or summarization providers may improve results but are never required for basic operation.
 
 “Parametric memory” means explicit configuration and model knowledge—such as project conventions, agent capabilities, tool limits, and response preferences. It does not imply modifying model weights.
 
@@ -23,7 +27,6 @@ The system supports projects, users, agents, complete session overviews, typed m
 - Retrieve bounded, source-linked context using exact search, metadata, recency, confidence, graph relationships, and optional embeddings.
 - Preserve an auditable path from injected context to source notes and from session output to extracted memories.
 - Operate offline by default and protect secrets and sensitive information.
-- Rebuild or delete derived indexes without losing canonical memory.
 
 ### Non-goals for v1
 
@@ -41,7 +44,7 @@ Claude Code plugin
   ├── session-start/session-end hooks
   ├── capture, recall, summaries, and entity management
   ├── validation, redaction, review, and maintenance
-  └── optional local/remote derived index adapters
+  └── optional local/remote semantic provider adapters
              │
              ▼
 Portable memory skill
@@ -57,7 +60,7 @@ Obsidian vault (canonical Markdown + YAML)
   ├── sessions and session overviews
   ├── typed memories
   ├── explicit relations
-  └── generated indexes and reports
+  └── generated reports
 ```
 
 The plugin and skill must share a versioned schema contract. All writes should be atomic where practical, use a journal or backup strategy, and avoid modifying unrelated vault files.
@@ -79,13 +82,11 @@ The plugin and skill must share a versioned schema contract. All writes should b
 │   ├── parametric/
 │   └── retrieval/
 ├── relations/
-├── indexes/              # disposable generated artifacts
 ├── reviews/              # doctor and human-review reports
 ├── templates/
 └── .memory/
     ├── config.yaml
-    ├── journal/
-    └── index/             # disposable local search/embedding data
+    └── journal/
 ```
 
 The exact folder names are configurable only through a versioned configuration file; default conventions should remain stable so the vault stays portable.
@@ -182,7 +183,7 @@ Retrieval uses a layered strategy:
 4. Graph expansion through typed relations and source sessions.
 5. Optional embedding search and provider-based summarization.
 
-The result assembler deduplicates overlapping notes, applies a context/token budget, preserves source links, labels each item by type and confidence, and states when evidence conflicts or is incomplete. Offline mode uses only vault text and local metadata/indexing. Optional providers must be replaceable adapters and may only create derived artifacts or explicitly approved canonical notes.
+The result assembler deduplicates overlapping notes, applies a context/token budget, preserves source links, labels each item by type and confidence, and states when evidence conflicts or is incomplete. Offline mode uses only vault text and local metadata. Optional providers must be replaceable adapters and may only create derived artifacts or explicitly approved canonical notes.
 
 ## 8. Plugin commands and skill decomposition
 
@@ -194,7 +195,6 @@ The plugin exposes:
 - `memory:session` — create, inspect, or summarize a session;
 - `memory:project`, `memory:person`, `memory:agent` — manage entities;
 - `memory:review` — inspect candidates, conflicts, stale notes, and promotions;
-- `memory:index` — build, inspect, or rebuild derived indexes;
 - `memory:doctor` — report broken links, invalid frontmatter, orphans, and consistency issues.
 
 The portable skill is one entry skill with focused subskills for capture, retrieval, session overview, each memory type, entities, relations, review, privacy, and maintenance. Subskills must defer to the shared schemas and avoid platform-specific assumptions.
@@ -208,7 +208,6 @@ The portable skill is one entry skill with focused subskills for capture, retrie
 - Personal and high-impact claims require confirmation when confidence is uncertain.
 - Retrieved context always identifies its source note and confidence.
 - Atomic writes, journal entries, and backups protect against interrupted operations.
-- Index corruption is recoverable by deleting and rebuilding `.memory/index`.
 - Malformed notes are skipped and reported, not destroyed.
 - Hooks fail open for the coding workflow: a memory failure cannot block the primary user task.
 
@@ -221,12 +220,11 @@ The portable skill is one entry skill with focused subskills for capture, retrie
 5. Project, user, and agent context can be created, linked, and loaded at session start.
 6. Every memory type has a usable template and classification rule.
 7. Typed relations support graph traversal and preserve contradictions/supersession history.
-8. Indexes can be rebuilt or removed without affecting canonical Markdown.
-9. `memory:doctor` detects invalid frontmatter, broken links, orphaned managed notes, duplicate IDs, stale items, and contradictions.
-10. Secret filtering, ignore markers, folder policies, atomic writes, and retryable journaling are covered by tests.
-11. Offline operation works without provider credentials or network access.
-12. Optional embedding/summarization providers can be added without changing canonical schemas.
+8. `memory:doctor` detects invalid frontmatter, broken links, orphaned managed notes, duplicate IDs, stale items, and contradictions.
+9. Secret filtering, ignore markers, folder policies, atomic writes, and retryable journaling are covered by tests.
+10. Offline operation works without provider credentials or network access.
+11. Optional embedding/summarization providers can be added without changing canonical schemas.
 
 ## 11. Incremental implementation boundary
 
-Although the workspace is designed as a full system, implementation should proceed in vertical slices: first the schema/configuration and initialization path, then entity and memory writes, then session summaries, then offline retrieval, then review/doctor, and finally optional providers and richer indexing. Each slice must keep the vault readable and preserve backward-compatible schema migration paths.
+Although the workspace is designed as a full system, implementation should proceed in vertical slices: first the schema/configuration and initialization path, then entity and memory writes, then session summaries, then offline retrieval, then review/doctor, and finally optional providers. Each slice must keep the vault readable and preserve backward-compatible schema migration paths.

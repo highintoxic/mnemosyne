@@ -1,5 +1,5 @@
 from mnemosyne.cli import main
-from mnemosyne.maintenance import doctor, rebuild_index
+from mnemosyne.maintenance import doctor
 from mnemosyne.relations import RelationStore
 from mnemosyne.retrieval import Retriever
 from mnemosyne.sessions import SessionStore
@@ -15,6 +15,5 @@ def test_complete_offline_workflow(tmp_path):
     SessionStore(tmp_path).finalize(session.stem, {"goals": ["remember"], "work": ["captured"], "decisions": ["local"], "discoveries": [], "unresolved": [], "follow_ups": []})
     RelationStore(tmp_path).add(session.stem, "derived-from", memory.stem)
     assert Retriever(tmp_path).search("canonical")
-    assert rebuild_index(tmp_path).exists()
     report = doctor(tmp_path)
     assert set(report) >= {"malformed", "duplicate_ids", "broken_links", "orphans", "invalid_statuses", "contradictions", "stale"}

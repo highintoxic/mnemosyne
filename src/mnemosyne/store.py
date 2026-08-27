@@ -6,11 +6,12 @@ import re
 from .config import VaultConfig
 from .ids import new_id
 from .journal import Journal, current_session_id
+from .memories import MEMORY_TYPES as ALL_MEMORY_TYPES, RECORD_TYPES
 from .notes import read_note, write_note
 from .privacy import is_ignored, redact_sensitive
 
 ENTITY_DIRS = {"user": "users", "person": "users", "project": "projects", "agent": "agents"}
-MEMORY_TYPES = {"semantic", "episodic", "procedural", "prospective", "parametric", "retrieval"}
+MEMORY_TYPES = set(ALL_MEMORY_TYPES) - RECORD_TYPES
 VALID_STATUSES = {"candidate", "active", "superseded", "archived", "rejected"}
 
 
@@ -52,10 +53,12 @@ class MemoryStore:
         folder = ENTITY_DIRS.get(kind.lower())
         if not folder:
             raise ValueError(f"unsupported entity kind: {kind}")
+        title, title_findings = redact_sensitive(title, self.config.sensitive_patterns)
         identifier = new_id(kind)
         path = self.vault / "entities" / folder / f"{slugify(title)}-{identifier}.md"
         description = fields.pop("description", "")
         description, findings = redact_sensitive(str(description), self.config.sensitive_patterns)
+        findings = sorted(set(findings + title_findings))
         if is_ignored(description, tuple(self.config.ignore_markers)):
             raise ValueError("entity capture is excluded")
         metadata = {"memory_schema": 1, "id": identifier, "type": kind.lower(), "title": title,
@@ -63,10 +66,10 @@ class MemoryStore:
         active = current_session_id(self.vault)
         if active and "source_sessions" not in metadata:
             metadata["source_sessions"] = [active]
-        metadata = self._normalize_links(metadata)
-        write_note(path, metadata, f"# {title}\n\n{description}".rstrip())
         if findings:
             metadata["redactions"] = findings
+        metadata = self._normalize_links(metadata)
+        write_note(path, metadata, f"# {title}\n\n{description}".rstrip())
         self.journal.append({"event": "entity_created", "id": identifier, "path": str(path.relative_to(self.vault))})
         return path
 
@@ -81,6 +84,7 @@ class MemoryStore:
         if self.config.is_path_excluded(self.vault / "memories" / kind) or is_ignored(body, tuple(self.config.ignore_markers)):
             raise ValueError("memory capture is excluded")
         clean, findings = redact_sensitive(body, self.config.sensitive_patterns)
+        title, _ = redact_sensitive(title, self.config.sensitive_patterns)
         identifier = new_id("mem")
         path = self.vault / "memories" / kind / f"{slugify(title)}-{identifier}.md"
         metadata = {"memory_schema": 1, "id": identifier, "type": kind, "title": title,
@@ -92,12 +96,16 @@ class MemoryStore:
         return path
 
     def get_by_id(self, identifier: str) -> Path | None:
-        for path in self.vault.rglob("*.md"):
+        paths = list(self.vault.rglob("*.md"))
+        for path in paths:
+            if path.stem == identifier:
+                return path
+        for path in paths:
             try:
                 metadata, _ = read_note(path)
             except (OSError, ValueError):
                 continue
-            if metadata.get("id") == identifier or path.stem == identifier:
+            if metadata.get("id") == identifier:
                 return path
         return None
 
@@ -221,8 +229,8 @@ class MemoryStore:
         old = self.get_by_id(identifier)
         if not old:
             raise FileNotFoundError(f"note not found: {identifier}")
-        self.set_status(str(read_note(old)[0].get("id", old.stem)), "superseded")
+        self.set_status(old.stem, "superseded")
         from .relations import RelationStore
         new_path = self.create_memory(kind, title, body, dict(fields or {}))
-        RelationStore(self.vault).add(new_path.stem, "supersedes", str(read_note(old)[0].get("id", old.stem)))
+        RelationStore(self.vault).add(new_path.stem, "supersedes", old.stem)
         return new_path

@@ -6,7 +6,7 @@ import sys
 
 from mnemosyne.config import VaultConfig
 from mnemosyne.journal import current_session_id
-from mnemosyne.maintenance import update_index, rebuild_index, doctor
+from mnemosyne.maintenance import doctor
 from mnemosyne.notes import read_note
 from mnemosyne.sessions import SessionStore
 from mnemosyne.store import MemoryStore
@@ -23,27 +23,6 @@ def test_quiz_records_score_and_links(tmp_path: Path):
     assert meta["weak_areas"] == ["isolation"]
     assert meta["questions"] == ["[[question_a]]", "[[question_b]]"]
     assert meta["source_sessions"] == [f"[[{session_id}]]"]
-
-
-def test_incremental_index_skips_unchanged(tmp_path: Path):
-    VaultConfig.initialize(tmp_path)
-    store = MemoryStore(tmp_path)
-    a = store.create_memory("semantic", "Alpha", "alpha body", {})
-    b = store.create_memory("semantic", "Beta", "beta body", {})
-    update_index(tmp_path)
-    index_path = tmp_path / ".memory/index/notes.json"
-    first = json.loads(index_path.read_text())
-    assert len(first) == 2
-    # Second run with no changes should not alter the index content.
-    update_index(tmp_path)
-    second = json.loads(index_path.read_text())
-    assert second == first
-    # Mutate one note and re-index; only that entry should reflect the change.
-    b.write_text("---\nid: x\ntype: semantic\n---\nbeta updated", encoding="utf-8")
-    update_index(tmp_path)
-    third = json.loads(index_path.read_text())
-    assert any(e["excerpt"] == "beta updated" for e in third)
-    assert any(e["excerpt"] == "alpha body" for e in third)
 
 
 def test_concurrent_sessions_separate_journals(tmp_path: Path):
@@ -82,7 +61,7 @@ def test_prompt_hook_runs_fail_open(tmp_path: Path):
     hook = Path(__file__).resolve().parent.parent / "hooks" / "session-prompt.sh"
     if not hook.exists() or shutil.which("sh") is None:
         return
-    env = dict(**__import__("os").environ, MNEMOSYNE_VAULT=str(tmp_path))
+    env = {**__import__("os").environ, "MNEMOSYNE_VAULT": str(tmp_path)}
     VaultConfig.initialize(tmp_path)
     proc = subprocess.run(["sh", str(hook)], input='{"prompt":"hello world"}',
                           capture_output=True, env=env, text=True)

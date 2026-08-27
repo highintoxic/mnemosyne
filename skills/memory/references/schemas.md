@@ -11,7 +11,7 @@ Managed Markdown notes begin and end YAML frontmatter with `memory_schema: 1`, a
 - `parametric`: approved preferences, conventions, capabilities, and constraints.
 - `retrieval`: saved queries, aliases, and context-assembly hints.
 
-Entity types are `user`/`person`, `project`, and `agent`; sessions use `type: session`; relations use `type: relation` with `source`, `relation`, and `target` fields. IDs are independent of filenames so Obsidian renames are safe. Canonical note content stays human-readable Markdown. `.memory/config.json`, JSONL journal events, and `.memory/index` are operational/derived files.
+Entity types are `user`/`person`, `project`, and `agent`; sessions use `type: session`; relations use `type: relation` with `source`, `relation`, and `target` fields. IDs are independent of filenames so Obsidian renames are safe. Canonical note content stays human-readable Markdown. `.memory/config.json` and JSONL journal events are operational files.
 
 ## Links and lifecycle
 

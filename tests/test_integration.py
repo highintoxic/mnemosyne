@@ -92,10 +92,12 @@ def test_cli_save_supersede_creates_relation(tmp_path: Path):
     rel_meta, rel_body = read_note(relations[0])
     assert rel_meta["type"] == "relation"
     assert rel_meta["relation"] == "supersedes"
-    assert rel_meta["target"] == first_id
+    # Relations link by note stem (like `source`), so wiki-links resolve in
+    # Obsidian and retrieval can dedupe the superseded note against its hits.
+    assert rel_meta["target"] == Path(first.stdout.strip()).stem
 
 
-def test_cli_quiz_and_index_subprocess(tmp_path: Path):
+def test_cli_quiz_subprocess(tmp_path: Path):
     _run_cli(["init"], tmp_path)
     quiz = _run_cli(
         ["quiz", "--topic", "databases", "--score", "7", "--total", "10",
@@ -105,10 +107,6 @@ def test_cli_quiz_and_index_subprocess(tmp_path: Path):
     assert quiz.returncode == 0, quiz.stderr
     meta, _ = read_note(Path(quiz.stdout.strip()))
     assert meta["type"] == "quiz" and meta["score"] == 7
-
-    index = _run_cli(["index", "--full"], tmp_path)
-    assert index.returncode == 0
-    assert (tmp_path / ".memory" / "index" / "notes.json").exists()
 
     doctor = _run_cli(["doctor", "--json"], tmp_path)
     assert doctor.returncode == 0
@@ -172,7 +170,7 @@ def test_mcp_stdio_initialize_and_tools_list(tmp_path: Path):
 
         listed = _mcp_send(proc, "tools/list")
         tools = {t["name"]: t for t in listed["result"]["tools"]}
-        assert len(tools) == 18, f"expected 18 tools, got {len(tools)}"
+        assert len(tools) == 17, f"expected 17 tools, got {len(tools)}"
         for name in ("save", "recall", "log_quiz", "session_finalize", "doctor"):
             assert name in tools, f"missing tool {name}"
             assert "inputSchema" in tools[name]

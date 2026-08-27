@@ -1,10 +1,14 @@
 # Obsidian Memory Workspace Implementation Plan
 
+> **2026-08-28:** the disposable on-disk search index described in the original
+> plan was never read by retrieval and has been removed. This document has
+> been updated to match the shipped system.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a local-first Python CLI and Claude Code skill/plugin that manages linked Obsidian Markdown memories, entities, sessions, retrieval, and maintenance.
 
-**Architecture:** A dependency-light Python package owns the canonical vault contract and workflows. The CLI exposes stable commands for initialization, saving, recall, sessions, entities, review, indexing, and diagnostics. Claude Code integration is a thin skill/plugin layer that invokes the CLI and documents memory behavior; derived indexes remain disposable and Markdown remains authoritative.
+**Architecture:** A dependency-light Python package owns the canonical vault contract and workflows. The CLI exposes stable commands for initialization, saving, recall, sessions, entities, review, and diagnostics. Claude Code integration is a thin skill/plugin layer that invokes the CLI and documents memory behavior; Markdown remains authoritative.
 
 **Tech Stack:** Python 3.11+, standard library (`argparse`, `pathlib`, `yaml`-free frontmatter parser), JSONL journal, pytest, Markdown/YAML-compatible frontmatter, optional provider interfaces without required network dependencies.
 
@@ -313,7 +317,7 @@ git add src/obsidian_memory tests/test_retrieval.py
 git commit -m "feat: add typed relations and offline retrieval"
 ```
 
-### Task 7: Review, indexing, and doctor diagnostics
+### Task 7: Review and doctor diagnostics
 
 **Files:**
 - Create: `src/obsidian_memory/maintenance.py`
@@ -321,7 +325,6 @@ git commit -m "feat: add typed relations and offline retrieval"
 
 **Interfaces:**
 - `review(vault: Path) -> dict[str, list[dict[str, object]]]`
-- `rebuild_index(vault: Path) -> Path`
 - `doctor(vault: Path) -> dict[str, list[str]]`
 
 - [ ] **Step 1: Write failing tests**
@@ -332,13 +335,6 @@ def test_doctor_reports_broken_relation_target(tmp_path):
     RelationStore(tmp_path).add("missing_source", "supports", "missing_target")
     report = doctor(tmp_path)
     assert report["broken_links"]
-
-def test_rebuild_index_is_disposable(tmp_path):
-    VaultConfig.initialize(tmp_path)
-    index = rebuild_index(tmp_path)
-    assert index.is_file()
-    index.unlink()
-    assert not index.exists()
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -348,7 +344,7 @@ Expected: FAIL because maintenance functions are missing.
 
 - [ ] **Step 3: Implement maintenance**
 
-`doctor` reports malformed frontmatter, duplicate IDs, missing relation endpoints, orphaned managed notes, invalid statuses, and contradictions where both notes explicitly conflict. `review` groups candidates, stale items, contradictions, and probable duplicates. `rebuild_index` writes a disposable JSON index under `.memory/index` containing searchable metadata and excerpts. Never modify canonical notes during diagnostics.
+`doctor` reports malformed frontmatter, duplicate IDs, missing relation endpoints, orphaned managed notes, invalid statuses, and contradictions where both notes explicitly conflict. `review` groups candidates, stale items, contradictions, and probable duplicates. Never modify canonical notes during diagnostics.
 
 - [ ] **Step 4: Run tests**
 
@@ -359,7 +355,7 @@ Expected: PASS.
 
 ```bash
 git add src/obsidian_memory tests/test_maintenance.py
-git commit -m "feat: add review, indexing, and doctor diagnostics"
+git commit -m "feat: add review and doctor diagnostics"
 ```
 
 ### Task 8: CLI commands and Claude Code integration
@@ -377,7 +373,7 @@ git commit -m "feat: add review, indexing, and doctor diagnostics"
 - Create: `tests/test_cli.py`
 
 **Interfaces:**
-- CLI subcommands: `init`, `save`, `recall`, `session`, `entity`, `review`, `index`, `doctor`.
+- CLI subcommands: `init`, `save`, `recall`, `session`, `entity`, `review`, `doctor`.
 - Hooks invoke `obsidian-memory` only when configured and return success even when memory operations fail.
 
 - [ ] **Step 1: Write failing tests**
@@ -419,7 +415,7 @@ git commit -m "feat: expose memory CLI and Claude Code skill"
 
 - [ ] **Step 1: Write end-to-end failing test**
 
-Exercise initialization, entity creation, session finalization, typed memory creation, relation creation, recall, index rebuild, and doctor in one temporary vault.
+Exercise initialization, entity creation, session finalization, typed memory creation, relation creation, recall, and doctor in one temporary vault.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -456,7 +452,7 @@ git add README.md tests/test_end_to_end.py src
 - Entities and all typed memories: Task 4.
 - Session overview and lifecycle: Task 5.
 - Relations and offline retrieval: Task 6.
-- Review, disposable indexes, and diagnostics: Task 7.
+- Review and diagnostics: Task 7.
 - Plugin, skill, hooks, and CLI: Task 8.
 - End-to-end acceptance: Task 9.
 - Optional embedding/summarization providers: Task 6 provider protocol; no provider implementation is required for v1.
@@ -465,6 +461,6 @@ git add README.md tests/test_end_to_end.py src
 
 - No unresolved placeholders or TODOs are present.
 - Interfaces use consistent `Path`, `dict`, and result shapes across tasks.
-- Canonical files remain Markdown; JSON is used only for configuration, journal, and disposable indexes.
+- Canonical files remain Markdown; JSON is used only for configuration and the journal.
 - Existing Obsidian files are preserved by initialization.
 - The implementation is intentionally dependency-light so offline behavior is testable and reliable.

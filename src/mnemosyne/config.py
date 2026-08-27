@@ -9,7 +9,7 @@ DEFAULT_FOLDERS = (
     "memories/semantic", "memories/episodic", "memories/procedural",
     "memories/prospective", "memories/parametric", "memories/retrieval",
     "memories/questions", "memories/decisions", "memories/quizzes",
-    "relations", "indexes", "reviews", "templates", ".memory/journal", ".memory/index",
+    "relations", "reviews", "templates", ".memory/journal",
 )
 
 

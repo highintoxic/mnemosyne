@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 from .config import VaultConfig
-from .maintenance import doctor, rebuild_index, review
+from .maintenance import doctor, review
 from .providers import TfidfProvider
 from .retrieval import Retriever
 from .sessions import SessionStore
@@ -25,6 +25,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="initialize a vault"); _common(init); init.add_argument("--dry-run", action="store_true")
     save = sub.add_parser("save", help="save a typed memory"); _common(save); save.add_argument("--type", required=True); save.add_argument("--title", required=True); save.add_argument("--body", required=True); save.add_argument("--status", default="candidate"); save.add_argument("--confidence", type=float, default=.5); save.add_argument("--importance", type=float, default=.5); save.add_argument("--supersede", metavar="OLD_ID", default=None, help="mark this note superseded and link the new one")
+    update = sub.add_parser("update", help="amend a memory in place"); _common(update); update.add_argument("--id", required=True); update.add_argument("--body"); update.add_argument("--title"); update.add_argument("--confidence", type=float); update.add_argument("--importance", type=float)
     recall = sub.add_parser("recall", help="retrieve linked context"); _common(recall); recall.add_argument("query"); recall.add_argument("--type"); recall.add_argument("--limit", type=int, default=10); recall.add_argument("--semantic", action="store_true", help="blend TF-IDF semantic ranking")
     entity = sub.add_parser("entity", help="create a user, project, or agent"); _common(entity); entity.add_argument("kind", choices=("user", "person", "project", "agent")); entity.add_argument("--title", required=True); entity.add_argument("--description", default="")
     session = sub.add_parser("session", help="start, finalize, or load session context"); _common(session); session.add_argument("action", choices=("start", "finalize", "context", "update")); session.add_argument("--id"); session.add_argument("--project"); session.add_argument("--user"); session.add_argument("--agent"); session.add_argument("--limit", type=int, default=10); session.add_argument("--overview", default="{}"); session.add_argument("--auto", action="store_true", help="build the overview from journal events"); session.add_argument("--decisions", nargs="*", default=None); session.add_argument("--goals", nargs="*", default=None); session.add_argument("--text", default=None, help="activity entry to append (session update)")
@@ -32,10 +33,7 @@ def _parser() -> argparse.ArgumentParser:
     question = sub.add_parser("question", help="record a quiz/learning question"); _common(question); question.add_argument("--question", required=True); question.add_argument("--answer", required=True); question.add_argument("--correct", type=lambda v: v.lower() in ("true", "1", "yes"), default=True); question.add_argument("--topic"); question.add_argument("--difficulty")
     decision = sub.add_parser("decision", help="record a decision with rationale"); _common(decision); decision.add_argument("--decision", required=True); decision.add_argument("--context", default=""); decision.add_argument("--options", nargs="*", default=None); decision.add_argument("--chosen"); decision.add_argument("--rationale", required=True)
     quiz = sub.add_parser("quiz", help="record a graded quiz batch"); _common(quiz); quiz.add_argument("--topic", required=True); quiz.add_argument("--score", type=int, required=True); quiz.add_argument("--total", type=int, required=True); quiz.add_argument("--weak-areas", nargs="*", default=None); quiz.add_argument("--questions", nargs="*", default=None, help="question note IDs to link")
-    for name, help_text in (("index", "rebuild the disposable index"), ("doctor", "diagnose vault consistency")):
-        child = sub.add_parser(name, help=help_text); _common(child)
-        if name == "index":
-            child.add_argument("--full", action="store_true", help="full rebuild instead of incremental update")
+    doctor_parser = sub.add_parser("doctor", help="diagnose vault consistency"); _common(doctor_parser)
     return parser
 
 
@@ -110,10 +108,6 @@ def main(argv: list[str] | None = None) -> int:
                 _emit(str(MemoryStore(vault).set_status(args.reject, "rejected")), args.as_json)
             else:
                 _emit(review(vault), args.as_json)
-        elif args.command == "index":
-            from .maintenance import rebuild_index, update_index
-            target = rebuild_index(vault) if getattr(args, "full", False) else update_index(vault)
-            _emit(str(target), args.as_json)
         elif args.command == "doctor": _emit(doctor(vault), args.as_json)
         return 0
     except (ValueError, FileNotFoundError, json.JSONDecodeError) as exc:

@@ -67,11 +67,7 @@ class SessionStore:
         body += "## Initial Request\n\n" + _items(clean_values(overview.get("initial_request"))) + "\n\n"
         body += "## Context Loaded\n\n" + _items(clean_values(overview.get("context"))) + "\n\n"
         for heading, values in sections:
-            clean = []
-            for value in (values if isinstance(values, list) else [values]):
-                text, _ = redact_sensitive(str(value), self.config.sensitive_patterns)
-                clean.append(text)
-            body += f"## {heading}\n\n{_items(clean)}\n\n"
+            body += f"## {heading}\n\n{_items(clean_values(values))}\n\n"
         body += "## Related Sessions\n\n" + _items(clean_values(overview.get("related_sessions")))
         if activity:
             body += f"\n\n## Activity Log\n\n" + "\n".join(f"- {line}" for line in activity)

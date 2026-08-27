@@ -65,7 +65,7 @@ gemini mcp add mnemosyne -- command "mnemosyne-mcp" "C:/Memory"
 
 Once registered, the agent sees 13 tools: `init`, `save`, `recall`, `entity`,
 `session_start`, `session_finalize`, `session_context`, `promote`, `reject`,
-`supersede`, `review`, `index`, `doctor`. Ask it to "recall relevant memory"
+`supersede`, `review`, `doctor`. Ask it to "recall relevant memory"
 or it will do so automatically at session start when configured.
 
 ## 2. Universal hooks (auto start/end every session)

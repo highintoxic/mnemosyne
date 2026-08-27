@@ -11,7 +11,7 @@ Use this skill whenever durable user, project, agent, session, or workflow conte
 
 The memory workspace is exposed two ways; prefer MCP tools when available:
 
-- **MCP tools** (registered as `mnemosyne` in Claude Code): `init`, `save`, `recall`, `entity`, `session_start`, `session_finalize`, `session_context`, `promote`, `reject`, `supersede`, `review`, `index`, `doctor`.
+- **MCP tools** (registered as `mnemosyne` in Claude Code): `init`, `save`, `recall`, `entity`, `session_start`, `session_finalize`, `session_context`, `promote`, `reject`, `supersede`, `review`, `doctor`.
 - **CLI**: `mnemosyne <command> --vault <vault>` (defaults to `MNEMOSYNE_VAULT` or `C:/Memory`).
 
 ## Subskills
@@ -24,7 +24,7 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
 5. **Relations:** use only `supports`, `contradicts`, `derived-from`, `implements`, `blocked-by`, `supersedes`, `part-of`, `applies-to`, and `related-to`. Never create self-relations.
 6. **Review:** surface candidates, stale notes, duplicates, contradictions, broken links, and orphans. Never silently overwrite contradictory facts.
 7. **Privacy:** apply [references/privacy.md](references/privacy.md) before any capture.
-8. **Maintenance:** rebuild disposable indexes and run doctor without changing canonical notes.
+8. **Maintenance:** run doctor without changing canonical notes.
 
 ## Workflow
 
@@ -49,7 +49,7 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
    When a memory changes, call `update` with `id` + the fields to amend (`body`, `title`, `confidence`) instead of creating a duplicate.
 3. **Session end** — call `session_finalize` with `auto=true` (builds the overview from the journal) plus explicit `decisions`; or pass a full JSON `overview`. This writes the complete session note (goals, work, discoveries, unresolved, follow-ups, extracted memories, activity log).
 4. **Lifecycle** — `promote`/`reject` reviewed candidates; `supersede` outdated notes (marks old superseded + links `supersedes` relation).
-5. **Maintenance** — `review` for promotion decisions, `doctor` for structural issues, `index` to rebuild the disposable search index.
+5. **Maintenance** — `review` for promotion decisions, `doctor` for structural issues.
 
 ## Retrieval behavior
 
@@ -59,4 +59,4 @@ The memory workspace is exposed two ways; prefer MCP tools when available:
 
 Read [references/privacy.md](references/privacy.md) before any capture. Secrets are auto-redacted before persistence; `<!-- memory:ignore -->` markers block capture; personal/high-impact claims require confirmation when confidence is uncertain.
 
-Read [references/schemas.md](references/schemas.md) for the canonical contract. Markdown/YAML notes are authoritative. JSON configuration, journals, and indexes are operational or derived artifacts only.
+Read [references/schemas.md](references/schemas.md) for the canonical contract. Markdown/YAML notes are authoritative. JSON configuration and journals are operational artifacts only.

@@ -64,7 +64,8 @@ SessionEnd        → auto-finalize: overview built from the journal
 All hooks are **fail-open** — memory can never block your work.
 
 ### 🔍 Retrieval that cites its sources
-Exact match → metadata filters → TF-IDF semantic blend → graph expansion. Every result carries type, confidence, score, and source path, so the agent can tell you *where* it learned something.
+Exact match → metadata filters → TF-IDF semantic blend → graph expansion.
+Superseded, archived, and rejected notes are never returned. Every result carries type, confidence, score, and source path, so the agent can tell you *where* it learned something.
 
 ### 🛡️ Privacy by default
 Secrets auto-redacted before write, `<!-- memory:ignore -->` markers, per-folder exclusion, confirmation for uncertain personal facts, JSONL journal audit trail, atomic writes.
@@ -109,18 +110,17 @@ mnemosyne decision  --decision D --rationale R [--context] [--options ...] [--ch
 mnemosyne quiz      --topic T --score N --total M [--weak-areas ...] [--questions ...]
 mnemosyne session   start|update|finalize|context
 mnemosyne review    [--promote ID] [--reject ID]
-mnemosyne index     # rebuild/increment disposable search index (--full for full rebuild)
 mnemosyne doctor    # diagnose broken links, orphans, contradictions
 ```
 
 ### MCP server — for any agent
 
-Register `mnemosyne-mcp` with any MCP client and the agent gets 18 tools:
+Register `mnemosyne-mcp` with any MCP client and the agent gets 17 tools:
 
 ```
 init · save · update · recall · entity · log_question · log_decision · log_quiz ·
 session_start · session_update · session_finalize · session_context ·
-promote · reject · supersede · review · index · doctor
+promote · reject · supersede · review · doctor
 ```
 
 ```jsonc
@@ -166,12 +166,12 @@ Obsidian vault (canonical Markdown + YAML)
    ├── sessions/
    ├── memories/{semantic,episodic,procedural,prospective,parametric,retrieval,questions,decisions}
    ├── relations/
-   ├── templates/  reviews/  indexes/        ← indexes are disposable
+   ├── templates/  reviews/
    └── .memory/    config · journal · session marker
 ```
 
-Markdown is **authoritative**; `.memory/` (config, journal, indexes) is
-operational or derived — delete it and rebuild, never lose a memory.
+Markdown is **authoritative**; `.memory/` (config, journal, session marker)
+is operational — delete it and the notes are still all there.
 
 ---
 
@@ -188,7 +188,7 @@ misses, and decisions durable, re-testable memory.
 
 ```bash
 python -m pip install -e ".[dev]"   # installs pytest for development
-python -m pytest -q        # 45+ tests, stdlib only
+python -m pytest -q        # 67 tests, stdlib only
 python -m compileall -q src
 ```
 
@@ -211,7 +211,7 @@ src/mnemosyne/          # core package (stdlib only)
   providers.py          # TF-IDF semantic provider (pluggable)
   privacy.py            # secret redaction, ignore markers
   journal.py            # JSONL audit trail
-  maintenance.py        # review / index / doctor
+  maintenance.py        # review / doctor
 hooks/                  # universal session hooks (fail-open)
 skills/memory/          # portable agent skill
 .claude-plugin/         # Claude Code plugin manifest + hooks

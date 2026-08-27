@@ -18,7 +18,7 @@ def test_mcp_server_creates_tools(vault: Path):
     tools = server.list_tools()
     tool_names = {t.name for t in tools}
     expected = {"init", "save", "recall", "entity", "session_start", "session_finalize", 
-                "session_context", "session_update", "update", "review", "index", "doctor", "promote", "reject", "supersede",
+                "session_context", "session_update", "update", "review", "doctor", "promote", "reject", "supersede",
                 "log_question", "log_decision"}
     assert expected.issubset(tool_names), f"Missing tools: {expected - tool_names}"
 

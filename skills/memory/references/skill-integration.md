@@ -73,6 +73,5 @@ mnemosyne recall --vault C:/Memory --type decision "Markdown"    # past decision
 
 - `doctor` and `review` treat question/decision records like any memory
   (orphan detection, broken-link checks, supersession history).
-- `index` includes them in the disposable search index.
 - Obsidian Graph View shows them linked to sessions/entities like all other
   memories.

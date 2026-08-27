@@ -12,10 +12,6 @@ MEMORY_TYPES = {
     "quiz": "a graded quiz batch: score, topic, weak areas, and linked questions",
 }
 
-
-def classify(kind: str) -> str:
-    """Return the definition for a supported memory type."""
-    try:
-        return MEMORY_TYPES[kind.lower()]
-    except KeyError as exc:
-        raise ValueError(f"unsupported memory type: {kind}") from exc
+# Types with dedicated constructors (create_question/decision/quiz) rather than
+# free-form save().
+RECORD_TYPES = {"question", "decision", "quiz"}

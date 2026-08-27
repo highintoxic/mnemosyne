@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .config import VaultConfig
-from .maintenance import doctor, rebuild_index, review
+from .maintenance import doctor, review
 from .providers import TfidfProvider
 from .relations import RelationStore
 from .retrieval import Retriever
@@ -169,10 +169,6 @@ class MCPMemoryServer:
                    {"type": "object", "properties": {"vault": vault_param}},
                    lambda a: review(Path(a.get("vault", str(self.vault)))))
 
-        self._tool("index", "Rebuild the disposable search index",
-                   {"type": "object", "properties": {"vault": vault_param}},
-                   lambda a: str(rebuild_index(Path(a.get("vault", str(self.vault))))))
-
         self._tool("doctor", "Diagnose vault consistency (broken links, orphans, etc.)",
                    {"type": "object", "properties": {"vault": vault_param}},
                    lambda a: doctor(Path(a.get("vault", str(self.vault)))))
@@ -252,7 +248,6 @@ def _text_content(value: Any) -> dict[str, Any]:
 
 def run_stdio_server(vault: Path) -> int:
     server = MCPMemoryServer(vault)
-    initialized = False
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -264,7 +259,6 @@ def run_stdio_server(vault: Path) -> int:
         method = message.get("method")
         request_id = message.get("id")
         if method == "initialize":
-            initialized = True
             sys.stdout.write(json.dumps(_jsonrpc_result(request_id, {
                 "protocolVersion": message.get("params", {}).get("protocolVersion", "2024-11-05"),
                 "capabilities": {"tools": {"listChanged": False}},

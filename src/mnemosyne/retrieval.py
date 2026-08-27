@@ -7,6 +7,8 @@ import re
 from .config import VaultConfig
 from .notes import read_note
 
+HIDDEN_STATUSES = {"archived", "rejected", "superseded"}
+
 
 class SemanticProvider(Protocol):
     def search(self, query: str, documents: list[dict[str, object]], limit: int) -> list[dict[str, object]]: ...
@@ -31,7 +33,7 @@ class Retriever:
                     metadata, body = read_note(path)
                 except (OSError, ValueError):
                     continue
-                if metadata.get("status") in {"archived", "rejected"}:
+                if metadata.get("status") in HIDDEN_STATUSES:
                     continue
                 if filters.get("type") and metadata.get("type") != filters["type"]:
                     continue
@@ -53,24 +55,25 @@ class Retriever:
         if self.provider is not None:
             candidates = self._blend_provider_scores(query, candidates)
         selected = candidates[:limit]
-        if selected:
-            known = {item["id"] for item in selected}
-            relation_terms = {str(item["id"]) for item in selected}
+        if selected and len(selected) < limit:
+            known = {str(item["id"]) for item in selected}
             for relation_path in (self.vault / "relations").glob("*.md"):
                 try:
                     metadata, _ = read_note(relation_path)
                 except (OSError, ValueError):
                     continue
                 source, target = metadata.get("source"), metadata.get("target")
-                if source in relation_terms or target in relation_terms:
-                    related_id = target if source in relation_terms else source
+                if source in known or target in known:
+                    related_id = target if source in known else source
                     if related_id in known:
                         continue
                     related = self._result_for_id(str(related_id))
                     if related:
                         related["score"] = max(0.1, float(related["score"]) * 0.5)
                         selected.append(related)
-                        known.add(related_id)
+                        known.add(str(related_id))
+                        if len(selected) >= limit:
+                            break
         return selected[:limit]
 
     def _blend_provider_scores(self, query: str, candidates: list[dict[str, object]]) -> list[dict[str, object]]:
@@ -90,6 +93,8 @@ class Retriever:
                 try:
                     metadata, body = read_note(path)
                 except (OSError, ValueError):
+                    continue
+                if metadata.get("status") in HIDDEN_STATUSES:
                     continue
                 if metadata.get("id") == identifier or path.stem == identifier:
                     return {"id": path.stem, "note_id": metadata.get("id", path.stem), "title": metadata.get("title", path.stem),
