@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
 
+from .memories import MEMORY_TYPES
+
 DEFAULT_FOLDERS = (
     "entities/users", "entities/projects", "entities/agents", "sessions",
     "memories/semantic", "memories/episodic", "memories/procedural",
@@ -37,7 +39,7 @@ class VaultConfig:
             payload = asdict(config)
             payload.pop("vault")
             _atomic_json(config.path, payload)
-        for kind in ("semantic", "episodic", "procedural", "prospective", "parametric", "retrieval", "question", "decision", "quiz"):
+        for kind in MEMORY_TYPES:
             template = vault / "templates" / f"{kind}.md"
             if not template.exists():
                 template.write_text(f"---\nmemory_schema: 1\ntype: {kind}\nstatus: candidate\n---\n\n# {{{{title}}}}\n", encoding="utf-8")
