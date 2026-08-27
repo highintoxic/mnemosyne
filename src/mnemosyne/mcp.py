@@ -142,6 +142,15 @@ class MCPMemoryServer:
                    lambda a: str(_store(a).create_decision(a["decision"], a.get("context", ""), a.get("options"),
                                                           a.get("chosen"), a["rationale"])))
 
+        self._tool("log_quiz", "Record a graded quiz batch (score, topic, weak areas, linked questions)",
+                   {"type": "object", "required": ["topic", "score", "total"],
+                    "properties": {"vault": vault_param, "topic": str_param("subject area"),
+                                   "score": {"type": "integer"}, "total": {"type": "integer"},
+                                   "weak_areas": {"type": "array", "items": {"type": "string"}},
+                                   "questions": {"type": "array", "items": {"type": "string"}}}},
+                   lambda a: str(_store(a).create_quiz(a["topic"], int(a["score"]), int(a["total"]),
+                                                      a.get("weak_areas"), a.get("questions"))))
+
         self._tool("promote", "Promote a candidate memory to active",
                    {"type": "object", "required": ["id"], "properties": {"vault": vault_param, "id": str_param("note ID")}},
                    lambda a: str(_store(a).set_status(a["id"], "active")))

@@ -5,7 +5,7 @@ import re
 
 from .config import VaultConfig
 from .ids import new_id
-from .journal import Journal
+from .journal import Journal, current_session_id
 from .notes import write_note
 from .privacy import redact_sensitive
 
@@ -29,6 +29,9 @@ class RelationStore:
         metadata = {"memory_schema": 1, "id": identifier, "type": "relation", "title": f"{source} {relation} {target}",
                     "status": "active", "created": datetime.now(timezone.utc).isoformat(), "updated": datetime.now(timezone.utc).isoformat(),
                     "source": source, "relation": relation, "target": target}
+        active = current_session_id(self.vault)
+        if active:
+            metadata["source_sessions"] = [f"[[{active}]]"]
         clean_evidence, _ = redact_sensitive(evidence or "", self.config.sensitive_patterns)
         body = f"# {relation}\n\n- Source: [[{source}]]\n- Target: [[{target}]]\n\n{clean_evidence}".rstrip()
         write_note(path, metadata, body)

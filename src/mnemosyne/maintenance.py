@@ -8,6 +8,7 @@ from .notes import read_note
 
 MANAGED_ROOTS = ("entities", "sessions", "memories", "relations")
 VALID_STATUSES = {"candidate", "active", "complete", "superseded", "archived", "rejected"}
+MEMORY_TYPES = {"semantic", "procedural", "prospective", "parametric", "episodic", "retrieval", "question", "decision", "quiz"}
 
 
 def _notes(vault: Path):
@@ -52,7 +53,7 @@ def doctor(vault: Path) -> dict[str, list[str]]:
                 if target and not any(p.stem == target or str(m.get("id")) == target for p, m, _ in records):
                     report["broken_links"].append(f"{path.relative_to(vault)} -> {target}")
     for path, metadata, body in records:
-        if metadata.get("type") in {"semantic", "procedural", "prospective", "parametric", "episodic", "retrieval"} and not metadata.get("source_sessions") and "/memories/" in str(path).replace("\\", "/"):
+        if metadata.get("type") in MEMORY_TYPES and not metadata.get("source_sessions") and "/memories/" in str(path).replace("\\", "/"):
             report["orphans"].append(str(path.relative_to(vault)))
         if metadata.get("type") == "semantic" and "contradicts:" in body.lower():
             report["contradictions"].append(str(path.relative_to(vault)))
@@ -82,20 +83,76 @@ def review(vault: Path) -> dict[str, list[dict[str, object]]]:
     return groups
 
 
+def _read_entry(path: Path, vault: Path) -> dict[str, object] | None:
+    try:
+        metadata, body = read_note(path)
+    except (OSError, ValueError):
+        return None
+    return {"id": metadata.get("id", path.stem), "title": metadata.get("title", path.stem),
+            "type": metadata.get("type"), "path": str(path.relative_to(vault)), "excerpt": body[:500]}
+
+
 def rebuild_index(vault: Path) -> Path:
     vault = Path(vault).resolve()
     config = VaultConfig.load(vault)
     target = vault / ".memory/index/notes.json"
-    target.parent.mkdir(parents=True, exist_ok=True)
+    state_path = target.with_name(".state.json")
     entries = []
     for path in _notes(vault):
+        entry = _read_entry(path, vault)
+        if entry is not None:
+            entries.append(entry)
+    _write_index(target, state_path, entries, vault)
+    return target
+
+
+def update_index(vault: Path) -> Path:
+    """Incrementally refresh the search index, skipping notes whose mtime is unchanged."""
+    vault = Path(vault).resolve()
+    config = VaultConfig.load(vault)
+    target = vault / ".memory/index/notes.json"
+    state_path = target.with_name(".state.json")
+    existing: dict[str, dict[str, object]] = {}
+    if target.exists():
         try:
-            metadata, body = read_note(path)
-        except (OSError, ValueError):
+            existing = {e["path"]: e for e in json.loads(target.read_text(encoding="utf-8"))}
+        except (json.JSONDecodeError, OSError):
+            existing = {}
+    state: dict[str, int] = {}
+    if state_path.exists():
+        try:
+            state = {k: int(v) for k, v in json.loads(state_path.read_text(encoding="utf-8")).items()}
+        except (json.JSONDecodeError, OSError):
+            state = {}
+    entries: list[dict[str, object]] = []
+    for path in _notes(vault):
+        rel = str(path.relative_to(vault))
+        try:
+            mtime = int(path.stat().st_mtime_ns)
+        except OSError:
             continue
-        entries.append({"id": metadata.get("id", path.stem), "title": metadata.get("title", path.stem),
-                        "type": metadata.get("type"), "path": str(path.relative_to(vault)), "excerpt": body[:500]})
+        if rel in existing and state.get(rel) == mtime:
+            entries.append(existing[rel])
+        else:
+            entry = _read_entry(path, vault)
+            if entry is not None:
+                entries.append(entry)
+                state[rel] = mtime
+    _write_index(target, state_path, entries, vault)
+    return target
+
+
+def _write_index(target: Path, state_path: Path, entries: list[dict[str, object]], vault: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
     temp = target.with_suffix(".tmp")
     temp.write_text(json.dumps(entries, indent=2, sort_keys=True), encoding="utf-8")
     temp.replace(target)
-    return target
+    state: dict[str, int] = {}
+    for entry in entries:
+        rel = str(entry["path"])
+        note = vault / rel
+        try:
+            state[rel] = int(note.stat().st_mtime_ns)
+        except OSError:
+            continue
+    state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")

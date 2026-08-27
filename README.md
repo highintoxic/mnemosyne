@@ -74,8 +74,13 @@ Secrets auto-redacted before write, `<!-- memory:ignore -->` markers, per-folder
 ## Quick start
 
 ```bash
-# Install
-python -m pip install mnemosyne          # or: pip install -e . from the repo
+# From the repository (recommended until the package is published to PyPI)
+git clone https://github.com/highintoxic/mnemosyne.git
+cd mnemosyne
+python -m pip install -e .
+
+# Or, once published on PyPI:
+python -m pip install mnemosyne
 
 # Initialize a vault (creates the folder layout; never deletes existing files)
 mnemosyne init --vault C:/Memory
@@ -101,18 +106,19 @@ mnemosyne recall    "query" [--type] [--semantic] [--limit]
 mnemosyne entity    project|user|agent --title T [--description]
 mnemosyne question  --question Q --answer A [--correct] [--topic] [--difficulty]
 mnemosyne decision  --decision D --rationale R [--context] [--options ...] [--chosen]
+mnemosyne quiz      --topic T --score N --total M [--weak-areas ...] [--questions ...]
 mnemosyne session   start|update|finalize|context
 mnemosyne review    [--promote ID] [--reject ID]
-mnemosyne index     # rebuild disposable search index
+mnemosyne index     # rebuild/increment disposable search index (--full for full rebuild)
 mnemosyne doctor    # diagnose broken links, orphans, contradictions
 ```
 
 ### MCP server — for any agent
 
-Register `mnemosyne-mcp` with any MCP client and the agent gets 17 tools:
+Register `mnemosyne-mcp` with any MCP client and the agent gets 18 tools:
 
 ```
-init · save · update · recall · entity · log_question · log_decision ·
+init · save · update · recall · entity · log_question · log_decision · log_quiz ·
 session_start · session_update · session_finalize · session_context ·
 promote · reject · supersede · review · index · doctor
 ```

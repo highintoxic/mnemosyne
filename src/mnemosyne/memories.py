@@ -9,6 +9,7 @@ MEMORY_TYPES = {
     "retrieval": "saved queries, aliases, and context assembly hints",
     "question": "asked questions with answers and correctness (quizzes, probes, learning)",
     "decision": "decisions with context, options, choice, and rationale",
+    "quiz": "a graded quiz batch: score, topic, weak areas, and linked questions",
 }
 
 

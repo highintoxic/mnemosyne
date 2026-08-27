@@ -38,6 +38,8 @@ class SessionStore:
                     **{key: (f"[[{value}]]" if value else None) for key, value in links.items()}}
         body = "# Session Overview\n\n## Initial Request\n\n- Not recorded\n\n## Context Loaded\n\n- None recorded\n\n## Goals\n\n- None recorded\n\n## Decisions\n\n- None recorded\n\n## Work\n\n- None recorded\n\n## Discoveries\n\n- None recorded\n\n## Unresolved Questions\n\n- None recorded\n\n## Follow-ups\n\n- None recorded\n\n## Extracted Memories\n\n- None recorded\n"
         write_note(path, metadata, body)
+        (self.vault / ".memory" / "current-session.txt").write_text(identifier, encoding="utf-8")
+        self.journal = Journal(self.vault / ".memory/journal/events.jsonl", session_id=identifier)
         self.journal.append({"event": "session_started", "id": identifier})
         return path
 
@@ -100,6 +102,9 @@ class SessionStore:
                 except json.JSONDecodeError:
                     continue
                 if not isinstance(event, dict) or str(event.get("timestamp", "")) < started_at:
+                    continue
+                event_session = event.get("session_id")
+                if event_session and str(event_session) != str(metadata.get("id")):
                     continue
                 if event.get("event") == "memory_created":
                     note = self.vault / str(event.get("path", ""))

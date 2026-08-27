@@ -5,7 +5,7 @@ import re
 
 from .config import VaultConfig
 from .ids import new_id
-from .journal import Journal
+from .journal import Journal, current_session_id
 from .notes import read_note, write_note
 from .privacy import is_ignored, redact_sensitive
 
@@ -60,6 +60,10 @@ class MemoryStore:
             raise ValueError("entity capture is excluded")
         metadata = {"memory_schema": 1, "id": identifier, "type": kind.lower(), "title": title,
                     "status": fields.pop("status", "active"), "created": _now(), "updated": _now(), **fields}
+        active = current_session_id(self.vault)
+        if active and "source_sessions" not in metadata:
+            metadata["source_sessions"] = [active]
+        metadata = self._normalize_links(metadata)
         write_note(path, metadata, f"# {title}\n\n{description}".rstrip())
         if findings:
             metadata["redactions"] = findings
@@ -68,6 +72,9 @@ class MemoryStore:
 
     def create_memory(self, kind: str, title: str, body: str, fields: dict[str, object]) -> Path:
         fields = dict(fields)
+        active = current_session_id(self.vault)
+        if active and "source_sessions" not in fields:
+            fields["source_sessions"] = [active]
         kind = kind.lower()
         if kind not in MEMORY_TYPES:
             raise ValueError(f"unsupported memory type: {kind}")
@@ -143,10 +150,14 @@ class MemoryStore:
             raise ValueError("question capture is excluded")
         identifier = new_id("question")
         path = self.vault / "memories" / "questions" / f"{slugify(clean_q[:60])}-{identifier}.md"
+        record_fields = dict(fields or {})
+        active = current_session_id(self.vault)
+        if active and "source_sessions" not in record_fields:
+            record_fields["source_sessions"] = [active]
         metadata = {"memory_schema": 1, "id": identifier, "type": "question", "title": clean_q[:80],
                     "status": "active", "created": _now(), "updated": _now(),
                     "question": clean_q, "answer": clean_a, "correct": bool(correct),
-                    "topic": topic, "difficulty": difficulty, **self._normalize_links(dict(fields or {}))}
+                    "topic": topic, "difficulty": difficulty, **self._normalize_links(record_fields)}
         write_note(path, metadata, f"**Q:** {clean_q}\n\n**A:** {clean_a}\n\n*Correct: {bool(correct)}*")
         self.journal.append({"event": "question_recorded", "id": identifier, "correct": bool(correct)})
         return path
@@ -164,13 +175,46 @@ class MemoryStore:
             raise ValueError("decision capture is excluded")
         identifier = new_id("decision")
         path = self.vault / "memories" / "decisions" / f"{slugify(clean_d[:60])}-{identifier}.md"
+        record_fields = dict(fields or {})
+        active = current_session_id(self.vault)
+        if active and "source_sessions" not in record_fields:
+            record_fields["source_sessions"] = [active]
         metadata = {"memory_schema": 1, "id": identifier, "type": "decision", "title": clean_d[:80],
                     "status": "active", "created": _now(), "updated": _now(),
                     "decision": clean_d, "context": clean_c, "options": list(options or []),
-                    "chosen": chosen, "rationale": clean_r, **self._normalize_links(dict(fields or {}))}
+                    "chosen": chosen, "rationale": clean_r, **self._normalize_links(record_fields)}
         body = f"# {clean_d}\n\n**Context:** {clean_c}\n\n**Options:** {', '.join(str(o) for o in (options or [])) or 'n/a'}\n\n**Chosen:** {chosen or 'n/a'}\n\n**Rationale:** {clean_r}"
         write_note(path, metadata, body)
         self.journal.append({"event": "decision_recorded", "id": identifier, "chosen": chosen})
+        return path
+
+    def create_quiz(self, topic: str, score: int, total: int, weak_areas: list[str] | None = None,
+                    question_ids: list[str] | None = None, fields: dict[str, object] | None = None) -> Path:
+        """Record a graded quiz batch: score, topic, weak areas, and linked questions."""
+        if total <= 0:
+            raise ValueError("quiz total must be a positive integer")
+        clean_topic, _ = redact_sensitive(topic, self.config.sensitive_patterns)
+        if is_ignored(clean_topic, tuple(self.config.ignore_markers)):
+            raise ValueError("quiz capture is excluded")
+        identifier = new_id("quiz")
+        path = self.vault / "memories" / "quizzes" / f"{slugify(clean_topic[:60])}-{identifier}.md"
+        record_fields = dict(fields or {})
+        active = current_session_id(self.vault)
+        if active and "source_sessions" not in record_fields:
+            record_fields["source_sessions"] = [active]
+        links = [f"[[{q}]]" for q in (question_ids or [])]
+        metadata = {"memory_schema": 1, "id": identifier, "type": "quiz", "title": clean_topic[:80],
+                    "status": "active", "created": _now(), "updated": _now(),
+                    "topic": clean_topic, "score": int(score), "total": int(total),
+                    "weak_areas": list(weak_areas or []), "questions": links,
+                    **self._normalize_links(record_fields)}
+        lines = [f"# Quiz: {clean_topic}", "", f"**Score:** {score}/{total} ({round(100 * score / total)}%)", ""]
+        if weak_areas:
+            lines += ["## Weak areas", ""] + [f"- {area}" for area in weak_areas] + [""]
+        if links:
+            lines += ["## Questions", ""] + [f"- {link}" for link in links] + [""]
+        write_note(path, metadata, "\n".join(lines).rstrip())
+        self.journal.append({"event": "quiz_recorded", "id": identifier, "score": int(score), "total": int(total)})
         return path
 
     def supersede(self, identifier: str, kind: str, title: str, body: str, fields: dict[str, object] | None = None) -> Path:

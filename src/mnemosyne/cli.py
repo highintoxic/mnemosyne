@@ -31,8 +31,11 @@ def _parser() -> argparse.ArgumentParser:
     review = sub.add_parser("review", help="review candidates and conflicts"); _common(review); review.add_argument("--promote", metavar="ID"); review.add_argument("--reject", metavar="ID")
     question = sub.add_parser("question", help="record a quiz/learning question"); _common(question); question.add_argument("--question", required=True); question.add_argument("--answer", required=True); question.add_argument("--correct", type=lambda v: v.lower() in ("true", "1", "yes"), default=True); question.add_argument("--topic"); question.add_argument("--difficulty")
     decision = sub.add_parser("decision", help="record a decision with rationale"); _common(decision); decision.add_argument("--decision", required=True); decision.add_argument("--context", default=""); decision.add_argument("--options", nargs="*", default=None); decision.add_argument("--chosen"); decision.add_argument("--rationale", required=True)
+    quiz = sub.add_parser("quiz", help="record a graded quiz batch"); _common(quiz); quiz.add_argument("--topic", required=True); quiz.add_argument("--score", type=int, required=True); quiz.add_argument("--total", type=int, required=True); quiz.add_argument("--weak-areas", nargs="*", default=None); quiz.add_argument("--questions", nargs="*", default=None, help="question note IDs to link")
     for name, help_text in (("index", "rebuild the disposable index"), ("doctor", "diagnose vault consistency")):
         child = sub.add_parser(name, help=help_text); _common(child)
+        if name == "index":
+            child.add_argument("--full", action="store_true", help="full rebuild instead of incremental update")
     return parser
 
 
@@ -91,6 +94,8 @@ def main(argv: list[str] | None = None) -> int:
             _emit(str(MemoryStore(vault).create_question(args.question, args.answer, args.correct, args.topic, args.difficulty)), args.as_json)
         elif args.command == "decision":
             _emit(str(MemoryStore(vault).create_decision(args.decision, args.context, args.options, args.chosen, args.rationale)), args.as_json)
+        elif args.command == "quiz":
+            _emit(str(MemoryStore(vault).create_quiz(args.topic, args.score, args.total, args.weak_areas, args.questions)), args.as_json)
         elif args.command == "update":
             kwargs = {}
             if args.body is not None: kwargs["body"] = args.body
@@ -105,7 +110,10 @@ def main(argv: list[str] | None = None) -> int:
                 _emit(str(MemoryStore(vault).set_status(args.reject, "rejected")), args.as_json)
             else:
                 _emit(review(vault), args.as_json)
-        elif args.command == "index": _emit(str(rebuild_index(vault)), args.as_json)
+        elif args.command == "index":
+            from .maintenance import rebuild_index, update_index
+            target = rebuild_index(vault) if getattr(args, "full", False) else update_index(vault)
+            _emit(str(target), args.as_json)
         elif args.command == "doctor": _emit(doctor(vault), args.as_json)
         return 0
     except (ValueError, FileNotFoundError, json.JSONDecodeError) as exc:
